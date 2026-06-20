@@ -1,7 +1,7 @@
 {
   "start": {
     "welcome": "👋 Здравствуйте! Добро пожаловать в ThinkSync Models.",
-    "description": "Здесь вы можете просматривать AI модели, общаться с ними, покупать пакеты и управлять своим профилем.",
+    "description": "Здесь вы можете просматривать AI модели, общаться с ними, покупать пакеты и управлять профилем.",
     "choose_lang": "🌐 Пожалуйста, выберите язык:",
     "ready": "✅ Бот запущен! Используйте /help для списка команд."
   },
@@ -24,7 +24,7 @@
     "status": "🔒 Статус: {status}",
     "balance": "💰 Баланс: {balance} токенов",
     "package_tokens": "📦 Пакетные токены: {tokens}",
-    "total_available": "💳 Всего: {total} токенов",
+    "total_available": "💳 Всего доступно: {total} токенов",
     "total_spent": "💸 Потрачено: ${spent}",
     "stats": "📊 Запросов: {requests} | Токенов: {tokens}"
   },
@@ -32,7 +32,7 @@
     "title": "🤖 Доступные модели",
     "select": "Выберите модель:",
     "detail": "🔹 {name}\n✍️ Вход: ${input}/1M | Выход: ${output}/1M\n📊 Контекст: {context} токен\n⚡ Поток: {streaming} | Функции: {functions}",
-    "no_models": "🚫 Модели не доступны."
+    "no_models": "🚫 Модели недоступны."
   },
   "chat": {
     "select_model": "🤖 Выберите модель для общения:",
@@ -43,26 +43,104 @@
     "error": "❌ Ошибка: {message}"
   },
   "billing": {
-    "title": "💰 Ваш счет",
+    "title": "💰 Ваш счёт",
     "packages": "📦 Доступные пакеты:",
     "package_item": "🔸 {name} - {price} ({tokens} токен + {bonus} бонус)",
     "buy_prompt": "Выберите пакет для покупки:",
     "buy_success": "✅ Пакет куплен! {name} - {tokens} токенов.",
     "buy_error": "❌ Ошибка покупки: {message}",
-    "topup": "🔄 Для пополнения счета свяжитесь с администратором или /support.",
+    "topup": "🔄 Для пополнения счёта выберите пакет или используйте /buy.",
     "transactions": "📋 Последние транзакции:",
-    "no_transactions": "🚫 Транзакций нет."
+    "no_transactions": "🚫 Транзакций нет.",
+    "package_detail": "📦 {name}\n💰 Цена: {price}\n📊 Токены: {tokens}\n⏱️ Срок: {expires}\n⭐ Рекомендуемый: {featured}",
+    "confirm_purchase": "Подтвердить покупку {name} за {price}?"
+  },
+  "payment": {
+    "title": "💳 Оплата",
+    "select_method": "Выберите способ оплаты:",
+    "checkout": "🔗 Оплатить",
+    "verify": "✅ Я оплатил",
+    "success": "✅ Оплата успешна! {amount} {currency}\n📦 Пакет: {name}\n📊 Добавлено токенов: {tokens}",
+    "failed": "❌ Оплата не удалась: {message}",
+    "pending": "⏳ Ожидается оплата. Нажмите на ссылку выше.",
+    "cancelled": "❌ Оплата отменена.",
+    "processing": "🔄 Обработка платежа...",
+    "amount": "Сумма: {amount} {currency}",
+    "rate_limit": "⚠️ Можно совершать только {max} платежей в час.",
+    "no_pending": "Нет ожидающих платежей.",
+    "history": "📋 История платежей:",
+    "history_item": "{status} {amount} {currency} - {date}"
+  },
+  "support": {
+    "title": "🎧 Поддержка",
+    "create_ticket": "📝 Новое обращение",
+    "my_tickets": "📋 Мои обращения",
+    "reply": "💬 Ответить",
+    "close_ticket": "🔒 Закрыть",
+    "take_ticket": "👤 Взять",
+    "resolve_ticket": "✅ Решить",
+    "open_tickets": "🔴 Открытые обращения",
+    "all_tickets": "📋 Все обращения",
+    "ticket_stats": "📊 Статистика",
+    "new_ticket_subject": "Введите тему обращения:",
+    "new_ticket_message": "Опишите проблему:",
+    "ticket_created": "✅ Обращение создано: {ticket_id}\nТема: {subject}",
+    "ticket_closed": "🔒 Обращение {ticket_id} закрыто.",
+    "ticket_resolved": "✅ Обращение {ticket_id} решено.",
+    "ticket_replied": "💬 Ответ отправлен на обращение {ticket_id}.",
+    "no_tickets": "🚫 Обращений пока нет.",
+    "ticket_detail": "📋 Обращение {ticket_id}\n📌 Статус: {status}\n📌 Тема: {subject}\n\n{messages}",
+    "admin_notified": "👤 Администратор уведомлён. Мы ответим в ближайшее время."
   },
   "admin": {
     "title": "👑 Админ Панель",
     "unauthorized": "❌ У вас нет прав администратора.",
     "stats": "📈 Статистика:\n• Пользователи: {users_total} (активных: {users_active})\n• Модели: {models_total} (активных: {models_active})\n• API запросов: {api_requests}\n• Общая стоимость: ${api_cost}",
-    "broadcast_prompt": "📤 Введите сообщение для всех пользователей:",
+    "broadcast_prompt": "📤 Введите сообщение для рассылки всем пользователям:",
     "broadcast_sent": "✅ Сообщение отправлено {count} пользователям.",
+    "broadcast_progress": "📤 Отправка: {sent}/{total} | ✅ Доставлено: {delivered} | ❌ Неудачно: {failed}",
+    "broadcast_failed": "❌ Не удалось отправить {count} пользователям.",
     "menu": "Админ панель:",
     "models_list": "🤖 Список моделей:",
     "users_list": "👥 Список пользователей:",
-    "logs_list": "📋 Список логов:"
+    "logs_list": "📋 Список логов:",
+    "payments_list": "💳 Список платежей:",
+    "support_panel": "🎧 Панель Поддержки",
+    "analytics": "📊 Аналитика:\n• Всего пользователей: {total_users}\n• Активных: {active_users}\n• Платящих: {paid_users}\n• Доход: ${revenue}\n• Потрачено токенов: {tokens_consumed}\n• Топ модель: {top_model}\n• Покупок сегодня: {purchases_today}\n• Покупок за месяц: {purchases_month}"
+  },
+  "broadcast": {
+    "all_users": "👥 Все пользователи",
+    "active_users": "🔵 Активные пользователи",
+    "paying_users": "💰 Платящие пользователи",
+    "confirm": "📤 Отправить",
+    "enter_message": "Введите сообщение для рассылки:",
+    "select_audience": "Выберите аудиторию:",
+    "sent": "✅ Рассылка отправлена!",
+    "progress": "📤 Прогресс: {sent}/{total} отправлено",
+    "failed": "❌ Неудачно: {count} пользователей",
+    "retry": "🔄 Повторить неудачные",
+    "cancelled": "❌ Рассылка отменена."
+  },
+  "promocode": {
+    "title": "🎁 Промокод",
+    "enter": "Введите промокод:",
+    "applied": "✅ Промокод применён!\n🎁 Бонус: {bonus}\n📊 Скидка: {discount}%",
+    "invalid": "❌ Неверный промокод.",
+    "expired": "⏰ Промокод истёк.",
+    "used_up": "❌ Лимит использования промокода исчерпан.",
+    "success": "✅ Промокод {code} активирован!"
+  },
+  "notifications": {
+    "payment_success": "✅ Оплата успешна! +{tokens} токенов",
+    "payment_failed": "❌ Оплата не удалась: {message}",
+    "package_expired": "⏰ Срок действия пакета {name} истёк.",
+    "package_expiring": "⏰ Пакет {name} истекает через {days} дней.",
+    "low_balance": "⚠️ Низкий баланс! Осталось {balance} токенов.",
+    "promocode_activated": "🎁 Промокод активирован! {bonus}",
+    "promocode_expired": "⏰ Промокод {code} истёк.",
+    "admin_announcement": "📢 {message}",
+    "ticket_reply": "💬 Новый ответ на обращение {ticket_id}",
+    "ticket_resolved": "✅ Обращение {ticket_id} решено."
   },
   "common": {
     "cancel": "❌ Отменено.",
@@ -70,7 +148,7 @@
     "loading": "🔄 Загрузка...",
     "error": "❌ Ошибка: {message}",
     "timeout": "⏰ Время ожидания истекло.",
-    "rate_limit": "⏰ Слишком много запросов. Подождите немножко.",
+    "rate_limit": "⏰ Слишком много запросов. Подождите немного.",
     "invalid_session": "🔒 Сессия истекла. Повторите /login.",
     "yes": "Да",
     "no": "Нет",
@@ -78,6 +156,6 @@
   },
   "help": {
     "title": "🛡️ Помощь",
-    "commands": "Доступные команды:\n\n/start - Запустить бота\n/login - Войти\n/profile - Профиль\n/models - AI модели\n/ask - Чат\n/buy - Купить пакет\n/topup - Пополнить счет\n/support - Поддержка\n/lang - Сменить язык\n/help - Помощь\n\nАдмин команды:\n/admin - Админ панель\n/stats - Статистика\n/broadcast - Рассылка\n/addmodel - Добавить модель\n/removemodel - Удалить модель"
+    "commands": "Доступные команды:\n\n/start - Запустить бота\n/login - Войти\n/profile - Профиль\n/models - AI модели\n/ask - Чат\n/buy - Купить пакет\n/topup - Пополнить счёт\n/support - Поддержка\n/promocode - Применить промокод\n/notifications - Уведомления\n/lang - Сменить язык\n/help - Помощь\n\nАдмин команды:\n/admin - Админ панель\n/stats - Статистика\n/broadcast - Рассылка\n/support_panel - Обращения\n/addmodel - Добавить модель\n/removemodel - Удалить модель"
   }
 }

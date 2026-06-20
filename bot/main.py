@@ -12,7 +12,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.config import config
 from bot.handlers import callbacks_router, commands_router
-from bot.middlewares import AuthMiddleware, I18nMiddleware
+from bot.middlewares import AuthMiddleware, I18nMiddleware, SecurityMiddleware
 from bot.services.api import api
 
 
@@ -35,9 +35,11 @@ async def main() -> None:
     bot = Bot(token=config.bot_token, parse_mode=ParseMode.MARKDOWN)
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Register middlewares
+    # Register middlewares (order matters: security first, then i18n, then auth)
+    dp.message.middleware(SecurityMiddleware())
     dp.message.middleware(I18nMiddleware())
     dp.message.middleware(AuthMiddleware())
+    dp.callback_query.middleware(SecurityMiddleware())
     dp.callback_query.middleware(I18nMiddleware())
     dp.callback_query.middleware(AuthMiddleware())
 
@@ -45,7 +47,7 @@ async def main() -> None:
     dp.include_router(commands_router)
     dp.include_router(callbacks_router)
 
-    logger.info("Bot started")
+    logger.info("ThinkSync Bot started (Phase 4B)")
     try:
         await dp.start_polling(bot)
     finally:

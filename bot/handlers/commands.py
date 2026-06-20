@@ -12,17 +12,41 @@ from aiogram.types import CallbackQuery, Message
 from bot.config import config
 from bot.keyboards import (
     admin_menu_keyboard,
+    admin_support_keyboard,
     back_keyboard,
+    broadcast_audience_keyboard,
+    broadcast_confirm_keyboard,
     chat_model_keyboard,
     language_keyboard,
     main_menu_keyboard,
     model_list_keyboard,
+    package_confirm_keyboard,
     package_list_keyboard,
+    payment_action_keyboard,
+    payment_method_keyboard,
+    promocode_keyboard,
+    support_keyboard,
+    ticket_list_keyboard,
 )
 from bot.services.api import ApiError, api
 from bot.services.auth import SessionManager, UserSession, session_manager
 from bot.services.i18n import t
-from bot.states import AdminState, AuthState, BuyState, ChatState
+from bot.services.notifications import NotificationManager, NotificationType, notification_manager
+from bot.services.payments import PaymentProvider, PaymentStatus, payment_tracker
+from bot.services.payments.click import click_gateway
+from bot.services.payments.payme import payme_gateway
+from bot.services.payments.stripe import stripe_gateway
+from bot.services.support import TicketManager, TicketStatus, ticket_manager
+from bot.states import (
+    AdminState,
+    AuthState,
+    BroadcastState,
+    BuyState,
+    ChatState,
+    PaymentState,
+    PromocodeState,
+    SupportState,
+)
 from bot.utils import (
     escape_markdown,
     format_model,
@@ -64,7 +88,6 @@ async def process_email(message: Message, state: FSMContext, language: str = "uz
         await message.answer(t("auth.invalid_email", language))
         return
 
-    # Demo OTP (in production, send actual email)
     otp_code = session_manager.create_otp(message.from_user.id, email)
     await state.set_state(AuthState.waiting_otp)
     await state.update_data(email=email)
@@ -90,8 +113,7 @@ async def process_otp(message: Message, state: FSMContext, language: str = "uz")
             return
         await message.answer(t("auth.otp_invalid", language, attempts=remaining))
         return
-    # In production, validate token against backend
-    # For demo, use email as token
+
     token = f"thc_telegram_{user_id}_{email}"
     is_admin = email.lower() == config.admin_email.lower()
 
@@ -123,12 +145,7 @@ async def cmd_profile(message: Message, token: str | None, language: str = "uz")
         return
 
     session = session_manager.get_session(user_id)
-    text = (
-        f"*{t('profile.title', language)}*\n\n"
-        f"📧 {session.email}\n"
-        f"📊 {session.language}\n"
-    )
-    # Try to fetch from backend
+    text = f"*{t('profile.title', language)}*\n\n📧 {session.email}\n"
     try:
         profile = await api.get_profile(token)
         text = (
@@ -202,7 +219,6 @@ async def cmd_ask(message: Message, state: FSMContext, token: str | None, langua
 
 @router.message(ChatState.waiting_model)
 async def chat_model_selected(message: Message, state: FSMContext, language: str = "uz"):
-    # This shouldn't be triggered by text; handled via callback
     await state.clear()
     await message.answer(t("common.cancel", language))
 
@@ -278,8 +294,24 @@ async def cmd_buy(message: Message, token: str | None, language: str = "uz"):
 # ── /topup ───────────────────────────────────────────────────
 
 @router.message(Command("topup"))
-async def cmd_topup(message: Message, language: str = "uz"):
-    await message.answer(t("billing.topup", language))
+async def cmd_topup(message: Message, token: str | None, language: str = "uz"):
+    """Topup command redirects to buy flow."""
+    user_id = message.from_user.id
+    if not session_manager.is_authenticated(user_id):
+        await message.answer(t("auth.not_logged_in", language))
+        return
+
+    try:
+        packages = await api.list_packages()
+        if not packages:
+            await message.answer(t("billing.no_transactions", language))
+            return
+        await message.answer(
+            t("billing.topup", language) + "\n\n" + t("billing.buy_prompt", language),
+            reply_markup=package_list_keyboard(packages, language),
+        )
+    except ApiError as exc:
+        await message.answer(t("common.error", language, message=exc.message))
 
 
 # ── /support ───────────────────────────────────────────────────
@@ -287,10 +319,135 @@ async def cmd_topup(message: Message, language: str = "uz"):
 @router.message(Command("support"))
 async def cmd_support(message: Message, language: str = "uz"):
     await message.answer(
-        f"{t('help.title', language)}\n\n"
+        f"*{t('support.title', language)}*\n\n"
         f"📧 Email: support@thinksync.ai\n"
         f"💬 Telegram: @ThinkSyncSupport\n\n"
-        f"{t('help.commands', language)}"
+        f"{t('support.title', language)}",
+        reply_markup=support_keyboard(language),
+    )
+
+
+@router.message(SupportState.waiting_subject)
+async def process_support_subject(message: Message, state: FSMContext, language: str = "uz"):
+    subject = message.text.strip()
+    if not subject:
+        await message.answer(t("common.error", language, message="Subject required"))
+        return
+    await state.update_data(subject=subject)
+    await state.set_state(SupportState.waiting_message)
+    await message.answer(t("support.new_ticket_message", language))
+
+
+@router.message(SupportState.waiting_message)
+async def process_support_message(message: Message, state: FSMContext, token: str | None, language: str = "uz"):
+    user_id = message.from_user.id
+    text = message.text.strip()
+    if not text:
+        await message.answer(t("common.error", language, message="Message required"))
+        return
+
+    data = await state.get_data()
+    subject = data.get("subject", "No subject")
+    session = session_manager.get_session(user_id)
+    email = session.email if session else ""
+
+    # Create ticket via backend (or local fallback)
+    try:
+        ticket = await api.create_support_ticket(token, subject, text)
+        ticket_id = ticket.get("id", "")
+    except ApiError:
+        ticket = ticket_manager.create_ticket(user_id, email, subject, text)
+        ticket_id = ticket.ticket_id
+
+    await state.clear()
+
+    # Notify user
+    notification_manager.add(
+        user_id,
+        NotificationType.ticket_reply,
+        t("support.ticket_created", language, ticket_id=ticket_id, subject=subject),
+        t("support.admin_notified", language),
+    )
+
+    await message.answer(
+        t("support.ticket_created", language, ticket_id=ticket_id, subject=subject),
+        reply_markup=support_keyboard(language),
+    )
+
+
+# ── /promocode ────────────────────────────────────────────────
+
+@router.message(Command("promocode"))
+async def cmd_promocode(message: Message, state: FSMContext, language: str = "uz"):
+    user_id = message.from_user.id
+    if not session_manager.is_authenticated(user_id):
+        await message.answer(t("auth.not_logged_in", language))
+        return
+    await state.set_state(PromocodeState.waiting_code)
+    await message.answer(
+        t("promocode.enter", language),
+        reply_markup=promocode_keyboard(language),
+    )
+
+
+@router.message(PromocodeState.waiting_code)
+async def process_promocode(message: Message, state: FSMContext, token: str | None, language: str = "uz"):
+    code = message.text.strip().upper()
+    user_id = message.from_user.id
+
+    try:
+        result = await api.apply_promocode(token, code)
+        bonus = result.get("bonus_tokens", 0)
+        discount = result.get("discount_percent", 0)
+
+        notification_manager.add(
+            user_id,
+            NotificationType.promocode_activated,
+            t("promocode.success", language, code=code),
+            t("promocode.applied", language, bonus=bonus, discount=discount),
+        )
+
+        await state.clear()
+        await message.answer(
+            t("promocode.applied", language, bonus=bonus, discount=discount),
+            reply_markup=main_menu_keyboard(language),
+        )
+    except ApiError as exc:
+        error_msg = exc.message.lower()
+        if "invalid" in error_msg:
+            await message.answer(t("promocode.invalid", language))
+        elif "expired" in error_msg:
+            await message.answer(t("promocode.expired", language))
+        elif "limit" in error_msg or "used" in error_msg:
+            await message.answer(t("promocode.used_up", language))
+        else:
+            await message.answer(t("promocode.invalid", language))
+
+
+# ── /notifications ──────────────────────────────────────────
+
+@router.message(Command("notifications"))
+async def cmd_notifications(message: Message, language: str = "uz"):
+    user_id = message.from_user.id
+    unread = notification_manager.get_unread_count(user_id)
+    notifications = notification_manager.list_for_user(user_id, unread_only=False)
+
+    if not notifications:
+        await message.answer(
+            t("common.error", language, message="No notifications"),
+            reply_markup=main_menu_keyboard(language),
+        )
+        return
+
+    lines = [f"*📢 Notifications* ({unread} unread)\n"]
+    for ntf in notifications[:10]:
+        status = "🔴" if not ntf.is_read else "✓"
+        lines.append(f"{status} {ntf.title}\n   {ntf.message}\n")
+
+    notification_manager.mark_all_read(user_id)
+    await message.answer(
+        "\n".join(lines),
+        reply_markup=main_menu_keyboard(language),
     )
 
 
@@ -334,20 +491,32 @@ async def cmd_stats(message: Message, is_admin: bool, token: str | None, languag
         return
 
     try:
-        analytics = await api.get_admin_analytics(token)
+        analytics = await api.get_admin_stats(token)
         text = t(
-            "admin.stats",
+            "admin.analytics",
             language,
-            users_total=analytics.get("users_total", 0),
-            users_active=analytics.get("users_active", 0),
-            models_total=analytics.get("models_total", 0),
-            models_active=analytics.get("models_active", 0),
-            api_requests=analytics.get("api_requests_total", 0),
-            api_cost=analytics.get("api_cost_total", 0),
+            total_users=analytics.get("users_total", 0),
+            active_users=analytics.get("users_active", 0),
+            paid_users=analytics.get("paid_users", 0),
+            revenue=analytics.get("revenue_total", 0),
+            tokens_consumed=analytics.get("tokens_consumed", 0),
+            top_model=analytics.get("top_model", "N/A"),
+            purchases_today=analytics.get("purchases_today", 0),
+            purchases_month=analytics.get("purchases_month", 0),
         )
         await message.answer(text)
-    except ApiError as exc:
-        await message.answer(t("common.error", language, message=exc.message))
+    except ApiError:
+        # Fallback to local ticket stats + basic analytics
+        ticket_stats = ticket_manager.get_stats()
+        text = (
+            f"*{t('admin.analytics', language)}*\n\n"
+            f"• Total users: {len(session_manager._sessions)}\n"
+            f"• Tickets: {ticket_stats['total']} (open: {ticket_stats['open']}, resolved: {ticket_stats['resolved']})\n"
+            f"• Total revenue: $0 (demo)\n"
+            f"• Purchases today: 0\n"
+            f"• Purchases this month: 0\n"
+        )
+        await message.answer(text)
 
 
 @router.message(Command("broadcast"))
@@ -355,17 +524,33 @@ async def cmd_broadcast(message: Message, state: FSMContext, is_admin: bool, lan
     if not is_admin:
         await message.answer(t("admin.unauthorized", language))
         return
-    await state.set_state(AdminState.waiting_broadcast)
-    await message.answer(t("admin.broadcast_prompt", language))
+    await state.set_state(BroadcastState.waiting_message)
+    await message.answer(t("broadcast.enter_message", language))
 
 
-@router.message(AdminState.waiting_broadcast)
-async def process_broadcast(message: Message, state: FSMContext, bot, language: str = "uz"):
-    text = message.text
-    # In a real implementation, get all users from DB and send
-    # For demo, just confirm
-    await state.clear()
-    await message.answer(t("admin.broadcast_sent", language, count=0))
+@router.message(BroadcastState.waiting_message)
+async def process_broadcast_message(message: Message, state: FSMContext, language: str = "uz"):
+    text = message.text.strip()
+    if not text:
+        await message.answer(t("common.error", language, message="Message cannot be empty"))
+        return
+    await state.update_data(broadcast_text=text)
+    await state.set_state(BroadcastState.waiting_audience)
+    await message.answer(
+        t("broadcast.select_audience", language),
+        reply_markup=broadcast_audience_keyboard(language),
+    )
+
+
+@router.message(Command("support_panel"))
+async def cmd_support_panel(message: Message, is_admin: bool, language: str = "uz"):
+    if not is_admin:
+        await message.answer(t("admin.unauthorized", language))
+        return
+    await message.answer(
+        t("admin.support_panel", language),
+        reply_markup=admin_support_keyboard(language),
+    )
 
 
 @router.message(Command("addmodel"))
@@ -374,7 +559,7 @@ async def cmd_addmodel(message: Message, is_admin: bool, language: str = "uz"):
         await message.answer(t("admin.unauthorized", language))
         return
     await message.answer(
-        "To add a model, use the web admin panel at /admin/models\n"
+        "To add a model, use the web admin panel.\n"
         "Or provide model details in format:\n"
         "slug|provider_model_id|display_name|input_price|output_price"
     )
@@ -386,14 +571,15 @@ async def cmd_removemodel(message: Message, is_admin: bool, language: str = "uz"
         await message.answer(t("admin.unauthorized", language))
         return
     await message.answer(
-        "To remove a model, use the web admin panel at /admin/models\n"
+        "To remove a model, use the web admin panel.\n"
         "Or provide the model slug to deactivate."
     )
 
 
-# ── Cancel / back handlers ──────────────────────────────
+# ── Cancel / back ─────────────────────────────────────────────
 
 @router.message(Command("cancel"))
 async def cmd_cancel(message: Message, state: FSMContext, language: str = "uz"):
     await state.clear()
+    payment_tracker.clear_user(message.from_user.id)
     await message.answer(t("common.cancel", language), reply_markup=main_menu_keyboard(language))

@@ -49,20 +49,98 @@
     "buy_prompt": "Select a package to purchase:",
     "buy_success": "✅ Package purchased! {name} - {tokens} tokens.",
     "buy_error": "❌ Purchase error: {message}",
-    "topup": "🔄 To top up your account, contact admin or use /support.",
+    "topup": "🔄 To top up your account, select a package or use /buy.",
     "transactions": "📋 Recent transactions:",
-    "no_transactions": "🚫 No transactions yet."
+    "no_transactions": "🚫 No transactions yet.",
+    "package_detail": "📦 {name}\n💰 Price: {price}\n📊 Tokens: {tokens}\n⏱️ Expires: {expires}\n⭐ Featured: {featured}",
+    "confirm_purchase": "Confirm purchase of {name} for {price}?"
+  },
+  "payment": {
+    "title": "💳 Payment",
+    "select_method": "Choose a payment method:",
+    "checkout": "🔗 Pay Now",
+    "verify": "✅ I have paid",
+    "success": "✅ Payment successful! {amount} {currency}\n📦 Package: {name}\n📊 Tokens added: {tokens}",
+    "failed": "❌ Payment failed: {message}",
+    "pending": "⏳ Payment pending. Click the link above to complete.",
+    "cancelled": "❌ Payment cancelled.",
+    "processing": "🔄 Processing payment...",
+    "amount": "Amount: {amount} {currency}",
+    "rate_limit": "⚠️ You can only make {max} payments per hour.",
+    "no_pending": "No pending payments.",
+    "history": "📋 Payment history:",
+    "history_item": "{status} {amount} {currency} - {date}"
+  },
+  "support": {
+    "title": "🎧 Support",
+    "create_ticket": "📝 New Ticket",
+    "my_tickets": "📋 My Tickets",
+    "reply": "💬 Reply",
+    "close_ticket": "🔒 Close Ticket",
+    "take_ticket": "👤 Take Ticket",
+    "resolve_ticket": "✅ Resolve Ticket",
+    "open_tickets": "🔴 Open Tickets",
+    "all_tickets": "📋 All Tickets",
+    "ticket_stats": "📊 Statistics",
+    "new_ticket_subject": "Enter ticket subject:",
+    "new_ticket_message": "Describe your issue:",
+    "ticket_created": "✅ Ticket created: {ticket_id}\nSubject: {subject}",
+    "ticket_closed": "🔒 Ticket {ticket_id} closed.",
+    "ticket_resolved": "✅ Ticket {ticket_id} resolved.",
+    "ticket_replied": "💬 Reply sent to ticket {ticket_id}.",
+    "no_tickets": "🚫 No tickets yet.",
+    "ticket_detail": "📋 Ticket {ticket_id}\n📌 Status: {status}\n📌 Subject: {subject}\n\n{messages}",
+    "admin_notified": "👤 Admin notified. We will reply soon."
   },
   "admin": {
     "title": "👑 Admin Panel",
     "unauthorized": "❌ You do not have admin privileges.",
     "stats": "📈 Statistics:\n• Users: {users_total} (active: {users_active})\n• Models: {models_total} (active: {models_active})\n• API requests: {api_requests}\n• Total cost: ${api_cost}",
-    "broadcast_prompt": "📤 Enter the message to broadcast to all users:",
+    "broadcast_prompt": "📤 Enter the message to broadcast:",
     "broadcast_sent": "✅ Message sent to {count} users.",
+    "broadcast_progress": "📤 Sending: {sent}/{total} | ✅ Delivered: {delivered} | ❌ Failed: {failed}",
+    "broadcast_failed": "❌ Failed to send to {count} users.",
     "menu": "Admin panel:",
     "models_list": "🤖 Models list:",
     "users_list": "👥 Users list:",
-    "logs_list": "📋 Logs list:"
+    "logs_list": "📋 Logs list:",
+    "payments_list": "💳 Payments list:",
+    "support_panel": "🎧 Support Panel",
+    "analytics": "📊 Analytics:\n• Total users: {total_users}\n• Active users: {active_users}\n• Paid users: {paid_users}\n• Revenue: ${revenue}\n• Tokens consumed: {tokens_consumed}\n• Top model: {top_model}\n• Purchases today: {purchases_today}\n• Purchases this month: {purchases_month}"
+  },
+  "broadcast": {
+    "all_users": "👥 All Users",
+    "active_users": "🔵 Active Users",
+    "paying_users": "💰 Paying Users",
+    "confirm": "📤 Send",
+    "enter_message": "Enter the message to broadcast:",
+    "select_audience": "Select audience:",
+    "sent": "✅ Broadcast sent!",
+    "progress": "📤 Progress: {sent}/{total} sent",
+    "failed": "❌ Failed: {count} users",
+    "retry": "🔄 Retry failed",
+    "cancelled": "❌ Broadcast cancelled."
+  },
+  "promocode": {
+    "title": "🎁 Promocode",
+    "enter": "Enter promocode:",
+    "applied": "✅ Promocode applied!\n🎁 Bonus: {bonus}\n📊 Discount: {discount}%",
+    "invalid": "❌ Invalid promocode.",
+    "expired": "⏰ Promocode expired.",
+    "used_up": "❌ Promocode usage limit reached.",
+    "success": "✅ Promocode {code} activated!"
+  },
+  "notifications": {
+    "payment_success": "✅ Payment successful! +{tokens} tokens",
+    "payment_failed": "❌ Payment failed: {message}",
+    "package_expired": "⏰ Your package {name} has expired.",
+    "package_expiring": "⏰ Your package {name} expires in {days} days.",
+    "low_balance": "⚠️ Low balance! {balance} tokens remaining.",
+    "promocode_activated": "🎁 Promocode activated! {bonus}",
+    "promocode_expired": "⏰ Promocode {code} expired.",
+    "admin_announcement": "📢 {message}",
+    "ticket_reply": "💬 New reply on ticket {ticket_id}",
+    "ticket_resolved": "✅ Ticket {ticket_id} resolved."
   },
   "common": {
     "cancel": "❌ Cancelled.",
@@ -78,6 +156,6 @@
   },
   "help": {
     "title": "🛡️ Help",
-    "commands": "Available commands:\n\n/start - Start the bot\n/login - Log in\n/profile - Profile info\n/models - AI models\n/ask - Chat with models\n/buy - Buy a package\n/topup - Top up account\n/support - Support\n/lang - Change language\n/help - Help\n\nAdmin commands:\n/admin - Admin panel\n/stats - Statistics\n/broadcast - Broadcast message\n/addmodel - Add model\n/removemodel - Remove model"
+    "commands": "Available commands:\n\n/start - Start the bot\n/login - Log in\n/profile - Profile info\n/models - AI models\n/ask - Chat with models\n/buy - Buy a package\n/topup - Top up account\n/support - Support\n/promocode - Apply promocode\n/notifications - View notifications\n/lang - Change language\n/help - Help\n\nAdmin commands:\n/admin - Admin panel\n/stats - Statistics\n/broadcast - Broadcast message\n/support_panel - Support tickets\n/addmodel - Add model\n/removemodel - Remove model"
   }
 }

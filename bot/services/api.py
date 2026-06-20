@@ -150,6 +150,62 @@ class ThinkSyncApi:
     async def list_admin_logs(self, token: str, page: int = 1) -> dict[str, Any]:
         return await self._request("GET", "/v1/admin/logs", token=token, params={"page": page, "page_size": 20})
 
+    # ── Payment endpoints ────────────────────────────────────
+
+    async def create_payment(self, token: str, package_id: str, provider: str, amount: float) -> dict[str, Any]:
+        payload = {
+            "package_id": package_id,
+            "provider": provider,
+            "amount": amount,
+            "currency": "USD",
+        }
+        return await self._request("POST", "/v1/payments/create", token=token, json_data=payload)
+
+    async def verify_payment(self, token: str, payment_id: str) -> dict[str, Any]:
+        return await self._request("POST", f"/v1/payments/{payment_id}/verify", token=token)
+
+    async def get_payment(self, token: str, payment_id: str) -> dict[str, Any]:
+        return await self._request("GET", f"/v1/payments/{payment_id}", token=token)
+
+    async def get_user_payments(self, token: str, limit: int = 10) -> list[dict[str, Any]]:
+        data = await self._request("GET", "/v1/payments", token=token, params={"limit": limit})
+        return data if isinstance(data, list) else []
+
+    # ── Promocode endpoints ──────────────────────────────────
+
+    async def apply_promocode(self, token: str, code: str) -> dict[str, Any]:
+        return await self._request("POST", "/v1/promocodes/apply", token=token, json_data={"code": code})
+
+    async def get_promocodes(self, token: str) -> list[dict[str, Any]]:
+        data = await self._request("GET", "/v1/promocodes", token=token)
+        return data if isinstance(data, list) else []
+
+    # ── Support endpoints ────────────────────────────────────
+
+    async def create_support_ticket(self, token: str, subject: str, message: str) -> dict[str, Any]:
+        return await self._request("POST", "/v1/support/tickets", token=token, json_data={"subject": subject, "message": message})
+
+    async def get_support_tickets(self, token: str) -> list[dict[str, Any]]:
+        data = await self._request("GET", "/v1/support/tickets", token=token)
+        return data if isinstance(data, list) else []
+
+    async def reply_support_ticket(self, token: str, ticket_id: str, message: str) -> dict[str, Any]:
+        return await self._request("POST", f"/v1/support/tickets/{ticket_id}/reply", token=token, json_data={"message": message})
+
+    async def close_support_ticket(self, token: str, ticket_id: str) -> dict[str, Any]:
+        return await self._request("POST", f"/v1/support/tickets/{ticket_id}/close", token=token)
+
+    # ── Admin endpoints ──────────────────────────────────────
+
+    async def get_admin_payments(self, token: str, page: int = 1) -> dict[str, Any]:
+        return await self._request("GET", "/v1/admin/payments", token=token, params={"page": page, "page_size": 20})
+
+    async def get_admin_support_tickets(self, token: str, page: int = 1) -> dict[str, Any]:
+        return await self._request("GET", "/v1/admin/support/tickets", token=token, params={"page": page, "page_size": 20})
+
+    async def get_admin_stats(self, token: str) -> dict[str, Any]:
+        return await self._request("GET", "/v1/admin/stats", token=token)
+
     async def close(self) -> None:
         if self._session and not self._session.closed:
             await self._session.close()

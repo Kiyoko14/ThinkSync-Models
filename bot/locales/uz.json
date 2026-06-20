@@ -49,9 +49,48 @@
     "buy_prompt": "Sotib olish uchun paketni tanlang:",
     "buy_success": "✅ Paket sotib olindi! {name} - {tokens} token.",
     "buy_error": "❌ Sotib olishda xatolik: {message}",
-    "topup": "🔄 Hisobni to'ldirish uchun administrator bilan bog'laning yoki /support.",
+    "topup": "🔄 Hisobni to'ldirish uchun paket tanlang yoki /buy dan foydalaning.",
     "transactions": "📋 Oxirgi tranzaksiyalar:",
-    "no_transactions": "🚫 Tranzaksiyalar yo'q."
+    "no_transactions": "🚫 Tranzaksiyalar yo'q.",
+    "package_detail": "📦 {name}\n💰 Narx: {price}\n📊 Tokenlar: {tokens}\n⏱️ Muddati: {expires}\n⭐ Tavsiya: {featured}",
+    "confirm_purchase": "{name} paketini {price} evaziga sotib olish?"
+  },
+  "payment": {
+    "title": "💳 To'lov",
+    "select_method": "To'lov usulini tanlang:",
+    "checkout": "🔗 To'lov qilish",
+    "verify": "✅ To'ladim",
+    "success": "✅ To'lov muvaffaqiyatli! {amount} {currency}\n📦 Paket: {name}\n📊 Qo'oshilgan tokenlar: {tokens}",
+    "failed": "❌ To'lov muvaffaqiyatsiz: {message}",
+    "pending": "⏳ To'lov kutilmoqda. Yuqoridagi havolani bosing.",
+    "cancelled": "❌ To'lov bekor qilindi.",
+    "processing": "🔄 To'lov qayta ishlanmoqda...",
+    "amount": "Summa: {amount} {currency}",
+    "rate_limit": "⚠️ Soatiga faqat {max} ta to'lov qilish mumkin.",
+    "no_pending": "Kutilayotgan to'lovlar yo'q.",
+    "history": "📋 To'lov tarixi:",
+    "history_item": "{status} {amount} {currency} - {date}"
+  },
+  "support": {
+    "title": "🎧 Qo'llab-quvvatlash",
+    "create_ticket": "📝 Yangi murojaat",
+    "my_tickets": "📋 Mening murojaatlarim",
+    "reply": "💬 Javob yuborish",
+    "close_ticket": "🔒 Yopish",
+    "take_ticket": "👤 Olish",
+    "resolve_ticket": "✅ Yechim",
+    "open_tickets": "🔴 Ochiq murojaatlar",
+    "all_tickets": "📋 Barcha murojaatlar",
+    "ticket_stats": "📊 Statistika",
+    "new_ticket_subject": "Murojaat mavzusini kiriting:",
+    "new_ticket_message": "Muammoni tavsiflab bering:",
+    "ticket_created": "✅ Murojaat yaratildi: {ticket_id}\nMavzu: {subject}",
+    "ticket_closed": "🔒 Murojaat {ticket_id} yopildi.",
+    "ticket_resolved": "✅ Murojaat {ticket_id} yechildi.",
+    "ticket_replied": "💬 Murojaat {ticket_id} ga javob yuborildi.",
+    "no_tickets": "🚫 Hozircha murojaatlar yo'q.",
+    "ticket_detail": "📋 Murojaat {ticket_id}\n📌 Holat: {status}\n📌 Mavzu: {subject}\n\n{messages}",
+    "admin_notified": "👤 Admin xabardor qilindi. Tez orada javob beramiz."
   },
   "admin": {
     "title": "👑 Admin Panel",
@@ -59,10 +98,49 @@
     "stats": "📈 Statistika:\n• Foydalanuvchilar: {users_total} (aktiv: {users_active})\n• Modellar: {models_total} (aktiv: {models_active})\n• API so'rovlar: {api_requests}\n• Umumiy narx: ${api_cost}",
     "broadcast_prompt": "📤 Barcha foydalanuvchilarga yuboriladigan xabarni kiriting:",
     "broadcast_sent": "✅ Xabar {count} foydalanuvchiga yuborildi.",
+    "broadcast_progress": "📤 Yuborilmoqda: {sent}/{total} | ✅ Yetkazildi: {delivered} | ❌ Muvaffaqiyatsiz: {failed}",
+    "broadcast_failed": "❌ {count} foydalanuvchiga yuborilmadi.",
     "menu": "Admin panel:",
     "models_list": "🤖 Modellar ro'yxati:",
     "users_list": "👥 Foydalanuvchilar ro'yxati:",
-    "logs_list": "📋 Loglar ro'yxati:"
+    "logs_list": "📋 Loglar ro'yxati:",
+    "payments_list": "💳 To'lovlar ro'yxati:",
+    "support_panel": "🎧 Qo'llab-quvvatlash Paneli",
+    "analytics": "📊 Analitika:\n• Jami foydalanuvchilar: {total_users}\n• Aktiv foydalanuvchilar: {active_users}\n• To'lov qilganlar: {paid_users}\n• Daromad: ${revenue}\n• Sarflangan tokenlar: {tokens_consumed}\n• Top model: {top_model}\n• Bugun sotib olishlar: {purchases_today}\n• Bu oy sotib olishlar: {purchases_month}"
+  },
+  "broadcast": {
+    "all_users": "👥 Barcha foydalanuvchilar",
+    "active_users": "🔵 Aktiv foydalanuvchilar",
+    "paying_users": "💰 To'lov qilganlar",
+    "confirm": "📤 Yuborish",
+    "enter_message": "Xabarni kiriting:",
+    "select_audience": "Auditoriyani tanlang:",
+    "sent": "✅ Xabar yuborildi!",
+    "progress": "📤 Jarayon: {sent}/{total} yuborildi",
+    "failed": "❌ Muvaffaqiyatsiz: {count} ta",
+    "retry": "🔄 Qayta urinish",
+    "cancelled": "❌ Xabar yuborish bekor qilindi."
+  },
+  "promocode": {
+    "title": "🎁 Promokod",
+    "enter": "Promokodni kiriting:",
+    "applied": "✅ Promokod qo'llandi!\n🎁 Bonus: {bonus}\n📊 Chegirma: {discount}%",
+    "invalid": "❌ Noto'g'ri promokod.",
+    "expired": "⏰ Promokod muddati tugagan.",
+    "used_up": "❌ Promokod ishlatish limiti tugagan.",
+    "success": "✅ Promokod {code} faollashtirildi!"
+  },
+  "notifications": {
+    "payment_success": "✅ To'lov muvaffaqiyatli! +{tokens} token",
+    "payment_failed": "❌ To'lov muvaffaqiyatsiz: {message}",
+    "package_expired": "⏰ {name} paketingiz muddati tugadi.",
+    "package_expiring": "⏰ {name} paketingiz {days} kundan keyin tugaydi.",
+    "low_balance": "⚠️ Balans kam! {balance} token qoldi.",
+    "promocode_activated": "🎁 Promokod faollashtirildi! {bonus}",
+    "promocode_expired": "⏰ {code} promokod muddati tugadi.",
+    "admin_announcement": "📢 {message}",
+    "ticket_reply": "💬 Murojaat {ticket_id} ga yangi javob",
+    "ticket_resolved": "✅ Murojaat {ticket_id} yechildi."
   },
   "common": {
     "cancel": "❌ Bekor qilindi.",
@@ -78,6 +156,6 @@
   },
   "help": {
     "title": "🛡️ Yordam",
-    "commands": "Mavjud buyruqlar:\n\n/start - Botni ishga tushirish\n/login - Tizimga kirish\n/profile - Profil ma'lumotlari\n/models - AI modellar\n/ask - Model bilan suhbatlashish\n/buy - Paket sotib olish\n/topup - Hisobni to'ldirish\n/support - Qo'llab-quvvatlash\n/lang - Tilni o'zgartirish\n/help - Yordam\n\nAdmin buyruqlari:\n/admin - Admin panel\n/stats - Statistika\n/broadcast - Xabar yuborish\n/addmodel - Model qo'shish\n/removemodel - Model o'chirish"
+    "commands": "Mavjud buyruqlar:\n\n/start - Botni ishga tushirish\n/login - Tizimga kirish\n/profile - Profil ma'lumotlari\n/models - AI modellar\n/ask - Model bilan suhbatlashish\n/buy - Paket sotib olish\n/topup - Hisobni to'ldirish\n/support - Qo'llab-quvvatlash\n/promocode - Promokod qo'llash\n/notifications - Xabarnomalar\n/lang - Tilni o'zgartirish\n/help - Yordam\n\nAdmin buyruqlari:\n/admin - Admin panel\n/stats - Statistika\n/broadcast - Xabar yuborish\n/support_panel - Murojaatlar\n/addmodel - Model qo'shish\n/removemodel - Model o'chirish"
   }
 }
