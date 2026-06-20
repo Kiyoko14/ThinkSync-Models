@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/thinksync-mobile/"
+title = "ThinkSync Mobile"
+version = "1.0.0"
+id = "artifacts/thinksync-mobile"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/thinksync-mobile/" ]
+localPort = 25299
+
+[services.development]
+run = "pnpm --filter @workspace/thinksync-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/thinksync-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/thinksync-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "25299"
+BASE_PATH = "/thinksync-mobile/"

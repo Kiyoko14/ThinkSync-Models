@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "YrBkXpWSszI7I_IhQVev9"
+uri = "file://artifacts/thinksync-mobile/assets/images/icon.png"
+type = "image"
+title = "ThinkSync app icon"
