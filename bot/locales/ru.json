@@ -1,0 +1,83 @@
+{
+  "start": {
+    "welcome": "👋 Здравствуйте! Добро пожаловать в ThinkSync Models.",
+    "description": "Здесь вы можете просматривать AI модели, общаться с ними, покупать пакеты и управлять своим профилем.",
+    "choose_lang": "🌐 Пожалуйста, выберите язык:",
+    "ready": "✅ Бот запущен! Используйте /help для списка команд."
+  },
+  "auth": {
+    "login_prompt": "🔑 Введите ваш email для входа:",
+    "invalid_email": "❌ Неверный формат email. Попробуйте снова.",
+    "otp_sent": "📩 Код подтверждения отправлен на {email} (демо: {code}).",
+    "otp_prompt": "🔐 Введите 6-значный код:",
+    "otp_invalid": "❌ Неверный код. Осталось попыток: {attempts}",
+    "otp_expired": "⏰ Код устарел. Повторите /login.",
+    "login_success": "✅ Вход выполнен! Добро пожаловать, {email}",
+    "logout_success": "🔒 Выход выполнен.",
+    "not_logged_in": "⚠️ Вы не вошли. Используйте /login.",
+    "already_logged_in": "✅ Вы уже вошли."
+  },
+  "profile": {
+    "title": "👤 Профиль",
+    "email": "📧 Email: {email}",
+    "plan": "📊 Тариф: {plan}",
+    "status": "🔒 Статус: {status}",
+    "balance": "💰 Баланс: {balance} токенов",
+    "package_tokens": "📦 Пакетные токены: {tokens}",
+    "total_available": "💳 Всего: {total} токенов",
+    "total_spent": "💸 Потрачено: ${spent}",
+    "stats": "📊 Запросов: {requests} | Токенов: {tokens}"
+  },
+  "models": {
+    "title": "🤖 Доступные модели",
+    "select": "Выберите модель:",
+    "detail": "🔹 {name}\n✍️ Вход: ${input}/1M | Выход: ${output}/1M\n📊 Контекст: {context} токен\n⚡ Поток: {streaming} | Функции: {functions}",
+    "no_models": "🚫 Модели не доступны."
+  },
+  "chat": {
+    "select_model": "🤖 Выберите модель для общения:",
+    "enter_prompt": "✍️ Введите вопрос:",
+    "thinking": "💭 Думаю...",
+    "result": "💬 Ответ:\n\n{response}",
+    "usage": "📊 Использование токенов:\n▶️ Вход: {input}\n◀️ Выход: {output}\n💰 Общая стоимость: ${cost}",
+    "error": "❌ Ошибка: {message}"
+  },
+  "billing": {
+    "title": "💰 Ваш счет",
+    "packages": "📦 Доступные пакеты:",
+    "package_item": "🔸 {name} - {price} ({tokens} токен + {bonus} бонус)",
+    "buy_prompt": "Выберите пакет для покупки:",
+    "buy_success": "✅ Пакет куплен! {name} - {tokens} токенов.",
+    "buy_error": "❌ Ошибка покупки: {message}",
+    "topup": "🔄 Для пополнения счета свяжитесь с администратором или /support.",
+    "transactions": "📋 Последние транзакции:",
+    "no_transactions": "🚫 Транзакций нет."
+  },
+  "admin": {
+    "title": "👑 Админ Панель",
+    "unauthorized": "❌ У вас нет прав администратора.",
+    "stats": "📈 Статистика:\n• Пользователи: {users_total} (активных: {users_active})\n• Модели: {models_total} (активных: {models_active})\n• API запросов: {api_requests}\n• Общая стоимость: ${api_cost}",
+    "broadcast_prompt": "📤 Введите сообщение для всех пользователей:",
+    "broadcast_sent": "✅ Сообщение отправлено {count} пользователям.",
+    "menu": "Админ панель:",
+    "models_list": "🤖 Список моделей:",
+    "users_list": "👥 Список пользователей:",
+    "logs_list": "📋 Список логов:"
+  },
+  "common": {
+    "cancel": "❌ Отменено.",
+    "back": "⬅️ Назад",
+    "loading": "🔄 Загрузка...",
+    "error": "❌ Ошибка: {message}",
+    "timeout": "⏰ Время ожидания истекло.",
+    "rate_limit": "⏰ Слишком много запросов. Подождите немножко.",
+    "invalid_session": "🔒 Сессия истекла. Повторите /login.",
+    "yes": "Да",
+    "no": "Нет",
+    "ok": "OK"
+  },
+  "help": {
+    "title": "🛡️ Помощь",
+    "commands": "Доступные команды:\n\n/start - Запустить бота\n/login - Войти\n/profile - Профиль\n/models - AI модели\n/ask - Чат\n/buy - Купить пакет\n/topup - Пополнить счет\n/support - Поддержка\n/lang - Сменить язык\n/help - Помощь\n\nАдмин команды:\n/admin - Админ панель\n/stats - Статистика\n/broadcast - Рассылка\n/addmodel - Добавить модель\n/removemodel - Удалить модель"
+  }
+}

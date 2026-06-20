@@ -11,6 +11,10 @@ Production-ready AI API gateway and billing platform — a FastAPI backend + Vit
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- `cd bot && source venv/bin/activate && python3 -m bot.main` — run the Telegram bot
+- `python3 -m pytest bot/tests/ -v` — run bot tests
+- Required env: `BOT_TOKEN` — Telegram bot token
+- Required env: `API_BASE_URL` — FastAPI backend URL (default: `http://localhost:8000`)
 
 ## Stack
 
@@ -36,6 +40,12 @@ Production-ready AI API gateway and billing platform — a FastAPI backend + Vit
   - `src/lib/i18n/translations.ts` — i18n (en, uz, ru)
   - `src/providers/` — Theme + Query providers
 - `artifacts/api-server/` — Express API server
+- `bot/` — Telegram Bot (Aiogram v3)
+  - `main.py` — Entry point
+  - `handlers/` — Commands and callbacks
+  - `services/` — API client, auth, i18n
+  - `locales/` — JSON translations (uz, ru, en)
+  - `tests/` — 37 passing tests
 
 ## Architecture decisions
 

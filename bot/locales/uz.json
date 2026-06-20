@@ -1,0 +1,83 @@
+{
+  "start": {
+    "welcome": "👋 Assalomu alaykum! ThinkSync Models botiga xush kelibsiz.",
+    "description": "Bu yerda siz AI modellarni ko'rish, ular bilan suhbatlashish, paketlar sotib olish va profilingizni boshqarishingiz mumkin.",
+    "choose_lang": "🌐 Iltimos, tilni tanlang:",
+    "ready": "✅ Bot ishga tushdi! /help bilan buyruqlarni ko'rishingiz mumkin."
+  },
+  "auth": {
+    "login_prompt": "🔑 Kirish uchun email manzilingizni yuboring:",
+    "invalid_email": "❌ Noto'g'ri email format. Iltimos, qayta yuboring.",
+    "otp_sent": "📩 Email manzilingizga {email} tasdiqlash kodi yuborildi (demo: {code}).",
+    "otp_prompt": "🔐 6 xonali kodni kiriting:",
+    "otp_invalid": "❌ Noto'g'ri kod. Qolgan urinishlar: {attempts}",
+    "otp_expired": "⏰ Kod muddati tugadi. /login bilan qayta urining.",
+    "login_success": "✅ Tizimga kirdingiz! Xush kelibsiz, {email}",
+    "logout_success": "🔒 Tizimdan chiqdingiz.",
+    "not_logged_in": "⚠️ Siz tizimga kirmagansiz. /login bilan kiring.",
+    "already_logged_in": "✅ Siz allaqachon tizimga kirgansiz."
+  },
+  "profile": {
+    "title": "👤 Profil",
+    "email": "📧 Email: {email}",
+    "plan": "📊 Tarif: {plan}",
+    "status": "🔒 Holat: {status}",
+    "balance": "💰 Balans: {balance} token",
+    "package_tokens": "📦 Paket tokenlari: {tokens}",
+    "total_available": "💳 Jami: {total} token",
+    "total_spent": "💸 Sarflangan: ${spent}",
+    "stats": "📊 So'rovlar: {requests} | Tokenlar: {tokens}"
+  },
+  "models": {
+    "title": "🤖 Mavjud modellar",
+    "select": "Modelni tanlang:",
+    "detail": "🔹 {name}\n✍️ Kirish: ${input}/1M | Chiqish: ${output}/1M\n📊 Kontekst: {context} token\n⚡ Oqim: {streaming} | Funksiyalar: {functions}",
+    "no_models": "🚫 Hozircha model mavjud emas."
+  },
+  "chat": {
+    "select_model": "🤖 Suhbatlashish uchun modelni tanlang:",
+    "enter_prompt": "✍️ Savolingizni yuboring:",
+    "thinking": "💭 O'ylayapman...",
+    "result": "💬 Javob:\n\n{response}",
+    "usage": "📊 Token ishlatilishi:\n▶️ Kirish: {input}\n◀️ Chiqish: {output}\n💰 Jami narx: ${cost}",
+    "error": "❌ Xatolik: {message}"
+  },
+  "billing": {
+    "title": "💰 Hisobingiz",
+    "packages": "📦 Mavjud paketlar:",
+    "package_item": "🔸 {name} - {price} ({tokens} token + {bonus} bonus)",
+    "buy_prompt": "Sotib olish uchun paketni tanlang:",
+    "buy_success": "✅ Paket sotib olindi! {name} - {tokens} token.",
+    "buy_error": "❌ Sotib olishda xatolik: {message}",
+    "topup": "🔄 Hisobni to'ldirish uchun administrator bilan bog'laning yoki /support.",
+    "transactions": "📋 Oxirgi tranzaksiyalar:",
+    "no_transactions": "🚫 Tranzaksiyalar yo'q."
+  },
+  "admin": {
+    "title": "👑 Admin Panel",
+    "unauthorized": "❌ Sizda admin huquqi yo'q.",
+    "stats": "📈 Statistika:\n• Foydalanuvchilar: {users_total} (aktiv: {users_active})\n• Modellar: {models_total} (aktiv: {models_active})\n• API so'rovlar: {api_requests}\n• Umumiy narx: ${api_cost}",
+    "broadcast_prompt": "📤 Barcha foydalanuvchilarga yuboriladigan xabarni kiriting:",
+    "broadcast_sent": "✅ Xabar {count} foydalanuvchiga yuborildi.",
+    "menu": "Admin panel:",
+    "models_list": "🤖 Modellar ro'yxati:",
+    "users_list": "👥 Foydalanuvchilar ro'yxati:",
+    "logs_list": "📋 Loglar ro'yxati:"
+  },
+  "common": {
+    "cancel": "❌ Bekor qilindi.",
+    "back": "⬅️ Orqaga",
+    "loading": "🔄 Yuklanmoqda...",
+    "error": "❌ Xatolik: {message}",
+    "timeout": "⏰ So'rov vaqti tugadi.",
+    "rate_limit": "⏰ Juda ko'p so'rov. Iltimos, biroz kuting.",
+    "invalid_session": "🔒 Sessiya tugadi. /login bilan qayta kiring.",
+    "yes": "Ha",
+    "no": "Yo'q",
+    "ok": "OK"
+  },
+  "help": {
+    "title": "🛡️ Yordam",
+    "commands": "Mavjud buyruqlar:\n\n/start - Botni ishga tushirish\n/login - Tizimga kirish\n/profile - Profil ma'lumotlari\n/models - AI modellar\n/ask - Model bilan suhbatlashish\n/buy - Paket sotib olish\n/topup - Hisobni to'ldirish\n/support - Qo'llab-quvvatlash\n/lang - Tilni o'zgartirish\n/help - Yordam\n\nAdmin buyruqlari:\n/admin - Admin panel\n/stats - Statistika\n/broadcast - Xabar yuborish\n/addmodel - Model qo'shish\n/removemodel - Model o'chirish"
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "start": {
+    "welcome": "👋 Hello! Welcome to ThinkSync Models.",
+    "description": "Here you can browse AI models, chat with them, purchase packages, and manage your profile.",
+    "choose_lang": "🌐 Please choose your language:",
+    "ready": "✅ Bot is ready! Use /help to see all commands."
+  },
+  "auth": {
+    "login_prompt": "🔑 Enter your email to log in:",
+    "invalid_email": "❌ Invalid email format. Please try again.",
+    "otp_sent": "📩 Verification code sent to {email} (demo: {code}).",
+    "otp_prompt": "🔐 Enter the 6-digit code:",
+    "otp_invalid": "❌ Invalid code. Attempts remaining: {attempts}",
+    "otp_expired": "⏰ Code expired. Please use /login to try again.",
+    "login_success": "✅ Logged in! Welcome, {email}",
+    "logout_success": "🔒 Logged out.",
+    "not_logged_in": "⚠️ You are not logged in. Use /login.",
+    "already_logged_in": "✅ You are already logged in."
+  },
+  "profile": {
+    "title": "👤 Profile",
+    "email": "📧 Email: {email}",
+    "plan": "📊 Plan: {plan}",
+    "status": "🔒 Status: {status}",
+    "balance": "💰 Balance: {balance} tokens",
+    "package_tokens": "📦 Package tokens: {tokens}",
+    "total_available": "💳 Total available: {total} tokens",
+    "total_spent": "💸 Total spent: ${spent}",
+    "stats": "📊 Requests: {requests} | Tokens: {tokens}"
+  },
+  "models": {
+    "title": "🤖 Available Models",
+    "select": "Select a model:",
+    "detail": "🔹 {name}\n✍️ Input: ${input}/1M | Output: ${output}/1M\n📊 Context: {context} tokens\n⚡ Streaming: {streaming} | Functions: {functions}",
+    "no_models": "🚫 No models available."
+  },
+  "chat": {
+    "select_model": "🤖 Select a model for chat:",
+    "enter_prompt": "✍️ Send your question:",
+    "thinking": "💭 Thinking...",
+    "result": "💬 Response:\n\n{response}",
+    "usage": "📊 Token usage:\n▶️ Input: {input}\n◀️ Output: {output}\n💰 Total cost: ${cost}",
+    "error": "❌ Error: {message}"
+  },
+  "billing": {
+    "title": "💰 Your Account",
+    "packages": "📦 Available packages:",
+    "package_item": "🔸 {name} - {price} ({tokens} tokens + {bonus} bonus)",
+    "buy_prompt": "Select a package to purchase:",
+    "buy_success": "✅ Package purchased! {name} - {tokens} tokens.",
+    "buy_error": "❌ Purchase error: {message}",
+    "topup": "🔄 To top up your account, contact admin or use /support.",
+    "transactions": "📋 Recent transactions:",
+    "no_transactions": "🚫 No transactions yet."
+  },
+  "admin": {
+    "title": "👑 Admin Panel",
+    "unauthorized": "❌ You do not have admin privileges.",
+    "stats": "📈 Statistics:\n• Users: {users_total} (active: {users_active})\n• Models: {models_total} (active: {models_active})\n• API requests: {api_requests}\n• Total cost: ${api_cost}",
+    "broadcast_prompt": "📤 Enter the message to broadcast to all users:",
+    "broadcast_sent": "✅ Message sent to {count} users.",
+    "menu": "Admin panel:",
+    "models_list": "🤖 Models list:",
+    "users_list": "👥 Users list:",
+    "logs_list": "📋 Logs list:"
+  },
+  "common": {
+    "cancel": "❌ Cancelled.",
+    "back": "⬅️ Back",
+    "loading": "🔄 Loading...",
+    "error": "❌ Error: {message}",
+    "timeout": "⏰ Request timed out.",
+    "rate_limit": "⏰ Too many requests. Please wait a moment.",
+    "invalid_session": "🔒 Session expired. Please use /login again.",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK"
+  },
+  "help": {
+    "title": "🛡️ Help",
+    "commands": "Available commands:\n\n/start - Start the bot\n/login - Log in\n/profile - Profile info\n/models - AI models\n/ask - Chat with models\n/buy - Buy a package\n/topup - Top up account\n/support - Support\n/lang - Change language\n/help - Help\n\nAdmin commands:\n/admin - Admin panel\n/stats - Statistics\n/broadcast - Broadcast message\n/addmodel - Add model\n/removemodel - Remove model"
+  }
+}
