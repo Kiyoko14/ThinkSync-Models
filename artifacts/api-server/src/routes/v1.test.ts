@@ -286,6 +286,170 @@ describe("GET /admin/analytics", () => {
 });
 
 // =============================================================================
+// ADMIN MANAGEMENT
+// =============================================================================
+
+describe("GET /admin/admins", () => {
+  it("lists all admins", async () => {
+    const { user: admin } = await createTestUser("admin2@example.com", "password123", { role: "admin" });
+    const token = generateToken(admin.id, admin.email, admin.role);
+    const res = await request(app)
+      .get(`${API}/admin/admins`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("data");
+    expect(Array.isArray(res.body.data)).toBe(true);
+  });
+});
+
+describe("POST /admin/admins", () => {
+  it("allows primary admin to create new admin", async () => {
+    const { user: primaryAdmin } = await createTestUser("jdusi908@gmail.com", "password123", { role: "admin" });
+    const token = generateToken(primaryAdmin.id, primaryAdmin.email, primaryAdmin.role);
+    const res = await request(app)
+      .post(`${API}/admin/admins`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ email: "newadmin@example.com", password: "password123", display_name: "New Admin" });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("id");
+    expect(res.body.email).toBe("newadmin@example.com");
+  });
+
+  it("forbids non-primary admin to create admin", async () => {
+    const { user: regularAdmin } = await createTestUser("regularadmin@example.com", "password123", { role: "admin" });
+    const token = generateToken(regularAdmin.id, regularAdmin.email, regularAdmin.role);
+    const res = await request(app)
+      .post(`${API}/admin/admins`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ email: "newadmin2@example.com", password: "password123" });
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("not_primary_admin");
+  });
+});
+
+describe("DELETE /admin/admins/:id", () => {
+  it("allows primary admin to delete admin", async () => {
+    const { user: primaryAdmin } = await createTestUser("jdusi908@gmail.com", "password123", { role: "admin" });
+    const { user: targetAdmin } = await createTestUser("targetadmin@example.com", "password123", { role: "admin" });
+    const token = generateToken(primaryAdmin.id, primaryAdmin.email, primaryAdmin.role);
+    const res = await request(app)
+      .delete(`${API}/admin/admins/${targetAdmin.id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("deleted");
+  });
+
+  it("prevents deleting primary admin", async () => {
+    const { user: primaryAdmin } = await createTestUser("jdusi908@gmail.com", "password123", { role: "admin" });
+    const token = generateToken(primaryAdmin.id, primaryAdmin.email, primaryAdmin.role);
+    const res = await request(app)
+      .delete(`${API}/admin/admins/${primaryAdmin.id}`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+    expect(res.body.error.code).toBe("cannot_delete_primary");
+  });
+});
+
+// =============================================================================
+// USER MANAGEMENT
+// =============================================================================
+
+describe("POST /admin/users/:id/balance", () => {
+  it("adjusts user balance", async () => {
+    const { user: admin } = await createTestUser("admin3@example.com", "password123", { role: "admin" });
+    const { user: targetUser } = await createTestUser("targetuser@example.com", "password123", { balance: 1000 });
+    const token = generateToken(admin.id, admin.email, admin.role);
+    const res = await request(app)
+      .post(`${API}/admin/users/${targetUser.id}/balance`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ amount: 500, reason: "Test credit" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.balance).toBe(1500);
+    expect(res.body.adjustment).toBe(500);
+  });
+
+  it("rejects non-admin", async () => {
+    const { user: regularUser } = await createTestUser("regular2@example.com", "password123");
+    const { user: targetUser } = await createTestUser("targetuser2@example.com", "password123");
+    const token = generateToken(regularUser.id, regularUser.email, regularUser.role);
+    const res = await request(app)
+      .post(`${API}/admin/users/${targetUser.id}/balance`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ amount: 500 });
+
+    expect(res.status).toBe(403);
+  });
+});
+
+// =============================================================================
+// AUDIT LOG
+// =============================================================================
+
+describe("GET /admin/audit-log", () => {
+  it("returns audit logs for admin", async () => {
+    const { user: admin } = await createTestUser("admin4@example.com", "password123", { role: "admin" });
+    const token = generateToken(admin.id, admin.email, admin.role);
+    const res = await request(app)
+      .get(`${API}/admin/audit-log`)
+      .set("Authorization", `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("data");
+    expect(res.body).toHaveProperty("meta");
+  });
+});
+
+// =============================================================================
+// MODEL MANAGEMENT
+// =============================================================================
+
+describe("POST /admin/models", () => {
+  it("creates a new model with RPM/TPM", async () => {
+    const { user: admin } = await createTestUser("admin5@example.com", "password123", { role: "admin" });
+    const token = generateToken(admin.id, admin.email, admin.role);
+    const res = await request(app)
+      .post(`${API}/admin/models`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        id: "test-model",
+        slug: "test-model",
+        provider_model_id: "test-model-v1",
+        provider_name: "TestProvider",
+        display_name: "Test Model",
+        pricing_input_per_m: 1.0,
+        pricing_output_per_m: 2.0,
+        rate_limit_rpm: 500,
+        rate_limit_tpm: 5000,
+        is_active: true,
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.rate_limit_rpm).toBe(500);
+    expect(res.body.rate_limit_tpm).toBe(5000);
+  });
+});
+
+describe("PATCH /admin/models/:id", () => {
+  it("disables a model", async () => {
+    const { user: admin } = await createTestUser("admin6@example.com", "password123", { role: "admin" });
+    const token = generateToken(admin.id, admin.email, admin.role);
+    const res = await request(app)
+      .patch(`${API}/admin/models/gpt-4o`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ is_active: false });
+
+    expect(res.status).toBe(200);
+    expect(res.body.is_active).toBe(false);
+  });
+});
+
+// =============================================================================
 // PUBLIC ENDPOINTS
 // =============================================================================
 

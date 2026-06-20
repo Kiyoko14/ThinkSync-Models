@@ -14,6 +14,8 @@ export interface AIModel {
   is_active: boolean;
   context_window: number;
   max_output_tokens: number;
+  rate_limit_rpm: number;
+  rate_limit_tpm: number;
   sort_order: number;
   created_at: string;
   updated_at: string;
@@ -37,6 +39,8 @@ export function createModel(m: Omit<AIModel, "id" | "created_at" | "updated_at">
     is_active: m.is_active,
     context_window: m.context_window,
     max_output_tokens: m.max_output_tokens,
+    rate_limit_rpm: m.rate_limit_rpm,
+    rate_limit_tpm: m.rate_limit_tpm,
     sort_order: m.sort_order,
     created_at: now,
     updated_at: now,

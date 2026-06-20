@@ -56,3 +56,21 @@ export function requireAdmin(req: AuthenticatedRequest, res: Response, next: Nex
   next();
 }
 
+const PRIMARY_ADMIN_EMAIL = "jdusi908@gmail.com";
+
+export function requirePrimaryAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  if (!req.user) {
+    res.status(401).json({ error: { message: "Unauthorized", code: "unauthorized" } });
+    return;
+  }
+  if (req.user.role !== "admin") {
+    res.status(403).json({ error: { message: "Forbidden", code: "forbidden" } });
+    return;
+  }
+  if (req.user.email !== PRIMARY_ADMIN_EMAIL) {
+    res.status(403).json({ error: { message: "Only primary admin can perform this action", code: "not_primary_admin" } });
+    return;
+  }
+  next();
+}
+

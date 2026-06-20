@@ -1,65 +1,103 @@
-# Phase 4B Report: Authentication & API Keys
+# Phase 4B Report: Admin Panel
 
 ## Overview
 
-Production-ready authentication system with JWT tokens, bcrypt password hashing, and hashed API key management for the ThinkSync Models API server.
+Production-ready admin panel with dashboard, user/model/package/promocode management, audit logging, and primary admin protection for the ThinkSync Models API server.
 
 ## Implementation
 
-### 1. Password Hashing (`src/lib/password.ts`)
+### 1. Audit Log Service (`src/services/audit-log.ts`)
 
-- **bcryptjs** with 12 salt rounds
-- `hashPassword(password: string)` — async, returns hash
-- `verifyPassword(password, hash)` — async, returns boolean
-- Replaced SHA-256 (one-way) with bcrypt (salted, slow, secure)
+- **In-memory Map** with audit log entries
+- `createAuditLog()` — tracks admin actions
+- `listAuditLogs()` — returns all audit logs
+- `clearAuditLogs()` — for test cleanup
+- Fields: `id`, `admin_id`, `admin_email`, `action`, `target_type`, `target_id`, `details`, `created_at`
+- Tracks every admin action: create/delete admin, adjust balance, create model, disable model, etc.
 
-### 2. API Key Utilities (`src/lib/api-key.ts`)
+### 2. Admin Management (`src/routes/v1.ts`)
 
-- `generateApiKey()` — creates `thc_` + 32 hex chars
-- `hashApiKey(key)` — SHA-256 hash for storage
-- `prefixApiKey(key)` — first 10 chars for display
-- Only **hashed** keys stored in memory; raw keys shown once at creation
+- `GET /admin/admins` — list all admins (admin only)
+- `POST /admin/admins` — create new admin (primary admin only)
+  - Validates email uniqueness
+  - Creates audit log entry
+  - Returns new admin profile
+- `DELETE /admin/admins/:id` — remove admin (primary admin only)
+  - Prevents deletion of primary admin (`jdusi908@gmail.com`)
+  - Sets `is_active: false` and `role: "user"` on deletion
+  - Creates audit log entry
 
-### 3. JWT Auth Middleware (`src/middlewares/auth.ts`)
+### 3. User Management Enhancements
 
-- `generateToken(userId, email, role)` — signs JWT with 7-day expiry
-- `verifyToken(token)` — validates and returns payload
-- `authMiddleware` — extracts Bearer token, sets `req.user`
+- `POST /admin/users/:id/balance` — adjust user balance
+  - `amount` (number, required): positive for credit, negative for debit
+  - `reason` (string, optional): admin note for the transaction
+  - Creates transaction record (`admin_credit`/`admin_debit`)
+  - Creates audit log entry
+  - Returns updated balance and adjustment amount
+
+### 4. Model Management Enhancements
+
+- Added `rate_limit_rpm` and `rate_limit_tpm` to `AIModel` interface
+- Updated `createModel` endpoint to accept and store rate limits
+- Updated seed data with default rate limits (1000 RPM, 10000 TPM)
+
+### 5. Promocode Management
+
+- `GET /admin/promocodes/:id` — single promocode endpoint
+- Usage tracking via `usage_limit` field
+- `times_used` incremented on each usage
+
+### 6. Audit Log Endpoint
+
+- `GET /admin/audit-log` — paginated list with filters
+  - `action` filter: filter by action type (e.g., `create_admin`, `adjust_balance`)
+  - `admin_id` filter: filter by admin user ID
+  - Returns structured data with pagination metadata
+
+### 7. Middleware Updates (`src/middlewares/auth.ts`)
+
 - `requireAdmin` — 403 if role is not "admin"
-- Secret from `JWT_SECRET` env var (fallback for dev)
+- `requirePrimaryAdmin` — 403 if email is not `jdusi908@gmail.com`
+- Primary admin can create/delete other admins
+- Regular admin can manage users, models, packages, promocodes
 
-### 4. Service Layer (`src/services/`)
+### 8. Service Layer (`src/services/`)
 
 | Service | Stores | Key Feature |
 |---------|--------|-------------|
-| `user.ts` | Users (Map) | CRUD, email lookup |
+| `user.ts` | Users (Map) | CRUD, email lookup, balance |
 | `api-key.ts` | API Keys (Map) | Hash storage, revoke, rotate |
-| `model.ts` | AI Models (Map) | CRUD, seeding |
+| `model.ts` | AI Models (Map) | CRUD, rate limits, seeding |
 | `package.ts` | Packages (Map) | CRUD, seeding |
-| `promocode.ts` | Promocodes (Map) | CRUD |
-| `transaction.ts` | Transactions (Map) | CRUD |
+| `promocode.ts` | Promocodes (Map) | CRUD, usage tracking |
+| `transaction.ts` | Transactions (Map) | CRUD, admin credit/debit |
 | `api-log.ts` | API Logs (Map) | CRUD |
+| `audit-log.ts` | Audit Logs (Map) | Admin action tracking |
 
-### 5. Routes (`src/routes/v1.ts`)
+### 9. Routes (`src/routes/v1.ts`)
 
-All endpoints updated to use:
-- **bcrypt** for password hashing
-- **JWT** for session tokens (returned at login/register)
-- **`authMiddleware`** for all protected routes
-- **`requireAdmin`** for admin routes
-- **Hashed API keys** — `generateApiKey()` returns raw key once, stores hash
+All endpoints updated with audit logging and primary admin protection:
 
-| Category | Endpoints | Auth |
-|----------|-----------|------|
-| Public | `GET /models`, `GET /packages` | None |
-| Auth | `POST /auth/login`, `POST /auth/register` | None |
-| User | `GET /user/profile`, `GET /user/stats`, `GET /user/balance`, `GET /user/usage`, `GET /user/transactions` | JWT |
-| API Keys | `GET /user/tokens`, `POST /user/tokens/generate`, `POST /user/tokens/:id/revoke`, `POST /user/tokens/:id/rotate` | JWT |
-| Admin | `GET /admin/analytics`, `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*` | JWT + admin role |
+| Category | Endpoints | Auth | Audit Log |
+|----------|-----------|------|-----------|
+| Public | `GET /models`, `GET /packages` | None | No |
+| Auth | `POST /auth/login`, `POST /auth/register` | None | No |
+| User | `GET /user/profile`, `GET /user/stats`, `GET /user/balance`, `GET /user/usage`, `GET /user/transactions` | JWT | No |
+| API Keys | `GET /user/tokens`, `POST /user/tokens/generate`, `POST /user/tokens/:id/revoke`, `POST /user/tokens/:id/rotate` | JWT | No |
+| Admin | `GET /admin/analytics` | JWT + admin | No |
+| Admin | `GET /admin/admins`, `POST /admin/admins`, `DELETE /admin/admins/:id` | JWT + admin | Yes |
+| Admin | `GET /admin/users`, `PATCH /admin/users/:id` | JWT + admin | Yes |
+| Admin | `POST /admin/users/:id/balance` | JWT + admin | Yes |
+| Admin | `GET /admin/models`, `POST /admin/models`, `PATCH /admin/models/:id` | JWT + admin | Yes |
+| Admin | `GET /admin/packages`, `POST /admin/packages`, `PATCH /admin/packages/:id` | JWT + admin | Yes |
+| Admin | `GET /admin/promocodes`, `POST /admin/promocodes`, `PATCH /admin/promocodes/:id` | JWT + admin | Yes |
+| Admin | `GET /admin/logs` | JWT + admin | No |
+| Admin | `GET /admin/audit-log` | JWT + admin | No |
 
-### 6. Tests (`src/routes/v1.test.ts`)
+### 10. Tests (`src/routes/v1.test.ts`)
 
-**21 tests** covering:
+**31 tests** covering:
 
 | Scenario | Count | Details |
 |----------|-------|---------|
@@ -71,16 +109,23 @@ All endpoints updated to use:
 | API key revoke | 2 | Own key, other user's key (404) |
 | API key rotate | 1 | Returns new key with new hash |
 | Admin access | 2 | Admin OK, non-admin forbidden |
+| Admin list | 1 | Returns all admins |
+| Admin create | 2 | Primary admin OK, non-primary forbidden |
+| Admin delete | 2 | Primary admin OK, cannot delete primary |
+| User balance | 2 | Adjust balance, non-admin rejected |
+| Audit log | 1 | Returns audit logs |
+| Model create | 1 | Creates model with rate limits |
+| Model disable | 1 | Disables model via PATCH |
 | Public endpoints | 2 | Models and packages without auth |
 
 **Test results:**
 ```
 Test Files  1 passed (1)
-Tests  21 passed (21)
-Duration  7.45s
+Tests  31 passed (31)
+Duration  12.55s
 ```
 
-### 7. Validation Results
+### 11. Validation Results
 
 | Step | Status | Notes |
 |------|--------|-------|
@@ -90,15 +135,21 @@ Duration  7.45s
 | Create API key | ✅ | Format: `thc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
 | Use API key | ✅ | Listed via `/user/tokens` (no raw key exposed) |
 | Revoke API key | ✅ | Status changes to "revoked" |
+| Create admin | ✅ | Primary admin can create new admin |
+| Delete admin | ✅ | Primary admin can delete admin, cannot delete self |
+| Adjust balance | ✅ | Admin can credit/debit user balance |
+| Audit log | ✅ | Every admin action tracked |
+| Create model | ✅ | Admin can create model with rate limits |
+| Disable model | ✅ | Admin can disable model |
 | Wrong password | ✅ | bcrypt returns 401 (invalid_credentials) |
 | No auth | ✅ | 401 (unauthorized) on protected routes |
 | Public models | ✅ | No auth required |
 | Admin access | ✅ | JWT + role === "admin" |
 | Build | ✅ | esbuild successful |
 | Typecheck | ✅ | 0 errors |
-| Tests | ✅ | 21/21 passed |
+| Tests | ✅ | 31/31 passed |
 
-### 8. Security Improvements
+### 12. Security Improvements
 
 | Before (Phase 3D) | After (Phase 4B) |
 |-------------------|------------------|
@@ -106,10 +157,22 @@ Duration  7.45s
 | Plaintext API keys | SHA-256 hashed keys stored |
 | Simple random token sessions | JWT with 7-day expiry |
 | Inline auth checks | `authMiddleware` + `requireAdmin` |
-| No tests | 21 tests with supertest + vitest |
+| No admin panel | Full admin panel with audit logging |
+| No primary admin | Primary admin (`jdusi908@gmail.com`) with special privileges |
+| No audit logging | Complete audit trail for all admin actions |
+| No tests | 31 tests with supertest + vitest |
 | Monolithic v1.ts | Service layer separated |
 
-### 9. API Key Format
+### 13. Primary Admin
+
+```
+Email:    jdusi908@gmail.com
+Role:     admin
+Privileges: Create/delete admins, all admin operations
+Protection: Cannot be deleted via API
+```
+
+### 14. API Key Format
 
 ```
 Raw key:  thc_40f017f543b94fe2640677ca692a18fc
@@ -118,27 +181,28 @@ Hash:     a1b2c3d4...      (SHA-256, stored)
 Pattern:  thc_[32 hex chars]
 ```
 
-### 10. Files Changed
+### 15. Files Changed
 
 | File | Change |
 |------|--------|
 | `src/lib/password.ts` | New — bcrypt hashing |
 | `src/lib/api-key.ts` | New — key generation + hashing |
-| `src/lib/test-utils.ts` | New — test helpers |
-| `src/middlewares/auth.ts` | New — JWT middleware |
-| `src/services/user.ts` | New — user service |
+| `src/lib/test-utils.ts` | Updated — transaction/audit cleanup |
+| `src/middlewares/auth.ts` | Updated — `requirePrimaryAdmin` |
+| `src/services/user.ts` | Updated — balance field |
 | `src/services/api-key.ts` | New — API key service |
-| `src/services/model.ts` | New — model service |
+| `src/services/model.ts` | Updated — rate limits |
 | `src/services/package.ts` | New — package service |
 | `src/services/promocode.ts` | New — promocode service |
 | `src/services/transaction.ts` | New — transaction service |
 | `src/services/api-log.ts` | New — API log service |
-| `src/routes/v1.ts` | Rewritten — JWT, bcrypt, services |
-| `src/routes/v1.test.ts` | New — 21 tests |
+| `src/services/audit-log.ts` | New — audit log service |
+| `src/routes/v1.ts` | Updated — admin endpoints, audit logging |
+| `src/routes/v1.test.ts` | Updated — 31 tests |
 | `package.json` | Updated — bcryptjs, jsonwebtoken, vitest, supertest |
 | `vitest.config.ts` | New — test config |
 
-### 11. Next Steps
+### 16. Next Steps
 
 1. **Database integration**: Replace in-memory Maps with PostgreSQL + Drizzle
 2. **JWT refresh tokens**: Add refresh token rotation for long-lived sessions
@@ -146,9 +210,10 @@ Pattern:  thc_[32 hex chars]
 4. **Rate limiting**: Implement per-user RPM/TPM limits
 5. **Email verification**: Add email confirmation flow
 6. **Password reset**: Add forgot-password flow
+7. **Admin UI**: Build React frontend for admin panel
 
 ---
 
 *Report generated: 2026-06-20*
-*21 tests passed*
+*31 tests passed*
 *All validation checks passed*

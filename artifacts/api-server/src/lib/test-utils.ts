@@ -1,5 +1,7 @@
 import { createUser, clearUsers } from "../services/user";
 import { createApiKey, clearApiKeys } from "../services/api-key";
+import { clearTransactions } from "../services/transaction";
+import { clearAuditLogs } from "../services/audit-log";
 import { hashPassword } from "./password";
 import { generateApiKey, hashApiKey, prefixApiKey } from "./api-key";
 import { generateToken } from "../middlewares/auth";
@@ -12,6 +14,7 @@ export async function createTestUser(
     role?: string;
     plan_tier?: string;
     is_active?: boolean;
+    balance?: number;
   }
 ): Promise<{ user: ReturnType<typeof createUser>; rawPassword: string }> {
   const user = createUser({
@@ -22,7 +25,7 @@ export async function createTestUser(
     role: overrides?.role || "user",
     is_active: overrides?.is_active ?? true,
     total_spent: 0,
-    balance: 0,
+    balance: overrides?.balance ?? 0,
     rate_limit_rpm: 60,
     rate_limit_tpm: 10000,
   });
@@ -48,4 +51,6 @@ export function getJwtToken(userId: string, email: string, role: string): string
 export function cleanup(): void {
   clearUsers();
   clearApiKeys();
+  clearTransactions();
+  clearAuditLogs();
 }

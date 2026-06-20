@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { hashApiKey, prefixApiKey, generateApiKey } from "../lib/api-key";
 import { hashPassword, verifyPassword } from "../lib/password";
-import { authMiddleware, requireAdmin, generateToken, type AuthenticatedRequest } from "../middlewares/auth";
+import { authMiddleware, requireAdmin, requirePrimaryAdmin, generateToken, type AuthenticatedRequest } from "../middlewares/auth";
 import { createUser, getUserByEmail, getUserById, updateUser, listUsers } from "../services/user";
 import { createApiKey, getApiKeyById, listApiKeysForUser, revokeApiKey, rotateApiKey } from "../services/api-key";
 import { createTransaction, listTransactions } from "../services/transaction";
@@ -9,6 +9,7 @@ import { createModel, listModels, updateModel } from "../services/model";
 import { createPackage, listPackages, updatePackage } from "../services/package";
 import { createPromocode, listPromocodes, updatePromocode } from "../services/promocode";
 import { createApiLog, listApiLogs } from "../services/api-log";
+import { createAuditLog, listAuditLogs } from "../services/audit-log";
 
 const router: IRouter = Router();
 
@@ -32,14 +33,28 @@ async function seedData() {
     rate_limit_tpm: 100000,
   });
 
+  const primaryAdmin = createUser({
+    id: "admin-002",
+    email: "jdusi908@gmail.com",
+    password_hash: await hashPassword("admin123"),
+    display_name: "Primary Admin",
+    plan_tier: "enterprise",
+    role: "admin",
+    is_active: true,
+    total_spent: 0,
+    balance: 0,
+    rate_limit_rpm: 1000,
+    rate_limit_tpm: 100000,
+  });
+
   // Seed models
   [
-    { id: "gpt-4o", slug: "gpt-4o", provider_model_id: "gpt-4o", provider_name: "OpenAI", display_name: "GPT-4o", description: "OpenAI's GPT-4o model", pricing_input_per_m: 2.5, pricing_output_per_m: 10.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 16384, sort_order: 1 },
-    { id: "gpt-4o-mini", slug: "gpt-4o-mini", provider_model_id: "gpt-4o-mini", provider_name: "OpenAI", display_name: "GPT-4o Mini", description: "OpenAI's GPT-4o-mini model", pricing_input_per_m: 0.15, pricing_output_per_m: 0.6, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 16384, sort_order: 2 },
-    { id: "gpt-4-turbo", slug: "gpt-4-turbo", provider_model_id: "gpt-4-turbo", provider_name: "OpenAI", display_name: "GPT-4 Turbo", description: "OpenAI's GPT-4 Turbo", pricing_input_per_m: 10.0, pricing_output_per_m: 30.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 4096, sort_order: 3 },
-    { id: "deepseek-v3", slug: "deepseek-v3", provider_model_id: "deepseek-chat", provider_name: "DeepSeek", display_name: "DeepSeek V3", description: "DeepSeek V3 model", pricing_input_per_m: 0.07, pricing_output_per_m: 0.27, supports_streaming: true, supports_functions: false, is_active: true, context_window: 64000, max_output_tokens: 8192, sort_order: 4 },
-    { id: "deepseek-r1", slug: "deepseek-r1", provider_model_id: "deepseek-reasoner", provider_name: "DeepSeek", display_name: "DeepSeek R1", description: "DeepSeek R1 reasoning model", pricing_input_per_m: 0.55, pricing_output_per_m: 2.19, supports_streaming: true, supports_functions: false, is_active: true, context_window: 64000, max_output_tokens: 8192, sort_order: 5 },
-    { id: "claude-3-5-sonnet", slug: "claude-3-5-sonnet", provider_model_id: "claude-3-5-sonnet-20241022", provider_name: "Anthropic", display_name: "Claude 3.5 Sonnet", description: "Anthropic's Claude 3.5 Sonnet", pricing_input_per_m: 3.0, pricing_output_per_m: 15.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 200000, max_output_tokens: 8192, sort_order: 6 },
+    { id: "gpt-4o", slug: "gpt-4o", provider_model_id: "gpt-4o", provider_name: "OpenAI", display_name: "GPT-4o", description: "OpenAI's GPT-4o model", pricing_input_per_m: 2.5, pricing_output_per_m: 10.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 16384, rate_limit_rpm: 1000, rate_limit_tpm: 10000, sort_order: 1 },
+    { id: "gpt-4o-mini", slug: "gpt-4o-mini", provider_model_id: "gpt-4o-mini", provider_name: "OpenAI", display_name: "GPT-4o Mini", description: "OpenAI's GPT-4o-mini model", pricing_input_per_m: 0.15, pricing_output_per_m: 0.6, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 16384, rate_limit_rpm: 2000, rate_limit_tpm: 20000, sort_order: 2 },
+    { id: "gpt-4-turbo", slug: "gpt-4-turbo", provider_model_id: "gpt-4-turbo", provider_name: "OpenAI", display_name: "GPT-4 Turbo", description: "OpenAI's GPT-4 Turbo", pricing_input_per_m: 10.0, pricing_output_per_m: 30.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 4096, rate_limit_rpm: 500, rate_limit_tpm: 5000, sort_order: 3 },
+    { id: "deepseek-v3", slug: "deepseek-v3", provider_model_id: "deepseek-chat", provider_name: "DeepSeek", display_name: "DeepSeek V3", description: "DeepSeek V3 model", pricing_input_per_m: 0.07, pricing_output_per_m: 0.27, supports_streaming: true, supports_functions: false, is_active: true, context_window: 64000, max_output_tokens: 8192, rate_limit_rpm: 1000, rate_limit_tpm: 10000, sort_order: 4 },
+    { id: "deepseek-r1", slug: "deepseek-r1", provider_model_id: "deepseek-reasoner", provider_name: "DeepSeek", display_name: "DeepSeek R1", description: "DeepSeek R1 reasoning model", pricing_input_per_m: 0.55, pricing_output_per_m: 2.19, supports_streaming: true, supports_functions: false, is_active: true, context_window: 64000, max_output_tokens: 8192, rate_limit_rpm: 500, rate_limit_tpm: 5000, sort_order: 5 },
+    { id: "claude-3-5-sonnet", slug: "claude-3-5-sonnet", provider_model_id: "claude-3-5-sonnet-20241022", provider_name: "Anthropic", display_name: "Claude 3.5 Sonnet", description: "Anthropic's Claude 3.5 Sonnet", pricing_input_per_m: 3.0, pricing_output_per_m: 15.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 200000, max_output_tokens: 8192, rate_limit_rpm: 1000, rate_limit_tpm: 10000, sort_order: 6 },
   ].forEach((m) => createModel(m as Parameters<typeof createModel>[0]));
 
   // Seed packages
@@ -387,6 +402,8 @@ router.post("/admin/models", authMiddleware, requireAdmin, (req: AuthenticatedRe
     is_active: payload.is_active ?? true,
     context_window: payload.context_window || 4096,
     max_output_tokens: payload.max_output_tokens || 4096,
+    rate_limit_rpm: payload.rate_limit_rpm || 1000,
+    rate_limit_tpm: payload.rate_limit_tpm || 10000,
     sort_order: payload.sort_order || 0,
   });
   res.json(model);
@@ -540,6 +557,107 @@ router.get("/admin/logs", authMiddleware, requireAdmin, (req: AuthenticatedReque
   if (modelSlug) all = all.filter((l) => l.model_slug === modelSlug);
   if (status) all = all.filter((l) => l.status === status);
   if (search) all = all.filter((l) => l.model_slug.toLowerCase().includes(search));
+  res.json({ data: paginate(all, page, pageSize), meta: paginateMeta(all.length, page, pageSize) });
+});
+
+// =============================================================================
+// ADMIN MANAGEMENT (Primary Admin Only)
+// =============================================================================
+
+// GET /v1/admin/admins — list all admins
+router.get("/admin/admins", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
+  const admins = listUsers().filter((u) => u.role === "admin");
+  res.json({ data: admins.map((a) => ({ id: a.id, email: a.email, display_name: a.display_name, is_active: a.is_active, created_at: a.created_at })) });
+});
+
+// POST /v1/admin/admins — create new admin (primary admin only)
+router.post("/admin/admins", authMiddleware, requirePrimaryAdmin, async (req: AuthenticatedRequest, res) => {
+  const { email, password, display_name } = req.body || {};
+  if (!email || !password) {
+    res.status(400).json({ error: { message: "Email and password required", code: "missing_fields" } });
+    return;
+  }
+  if (getUserByEmail(email)) {
+    res.status(409).json({ error: { message: "Email already exists", code: "email_exists" } });
+    return;
+  }
+  const admin = createUser({
+    email,
+    password_hash: await hashPassword(password),
+    display_name: display_name || null,
+    plan_tier: "enterprise",
+    role: "admin",
+    is_active: true,
+    total_spent: 0,
+    balance: 0,
+    rate_limit_rpm: 1000,
+    rate_limit_tpm: 100000,
+  });
+  createAuditLog(req.user!.id, req.user!.email, "create_admin", "admin", admin.id, `Created admin ${email}`);
+  res.json({ id: admin.id, email: admin.email, display_name: admin.display_name, created_at: admin.created_at });
+});
+
+// DELETE /v1/admin/admins/:id — delete admin (primary admin only)
+router.delete("/admin/admins/:id", authMiddleware, requirePrimaryAdmin, (req: AuthenticatedRequest, res) => {
+  const id = req.params.id as string;
+  const user = getUserById(id);
+  if (!user || user.role !== "admin") {
+    res.status(404).json({ error: { message: "Admin not found", code: "admin_not_found" } });
+    return;
+  }
+  if (user.email === "jdusi908@gmail.com") {
+    res.status(403).json({ error: { message: "Cannot delete primary admin", code: "cannot_delete_primary" } });
+    return;
+  }
+  updateUser(id, { is_active: false, role: "user" });
+  createAuditLog(req.user!.id, req.user!.email, "delete_admin", "admin", id, `Deleted admin ${user.email}`);
+  res.json({ id, status: "deleted", email: user.email });
+});
+
+// =============================================================================
+// USER MANAGEMENT ENHANCEMENTS
+// =============================================================================
+
+// POST /v1/admin/users/:id/balance — adjust user balance
+router.post("/admin/users/:id/balance", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
+  const id = req.params.id as string;
+  const { amount, reason } = req.body || {};
+  if (typeof amount !== "number") {
+    res.status(400).json({ error: { message: "Amount is required (number)", code: "missing_amount" } });
+    return;
+  }
+  const user = getUserById(id);
+  if (!user) {
+    res.status(404).json({ error: { message: "User not found", code: "user_not_found" } });
+    return;
+  }
+  const newBalance = user.balance + amount;
+  updateUser(id, { balance: newBalance });
+  createTransaction({
+    profile_id: id,
+    amount: Math.abs(amount),
+    balance_after: newBalance,
+    transaction_type: amount >= 0 ? "admin_credit" : "admin_debit",
+    status: "completed",
+    description: reason || `Admin balance adjustment by ${req.user!.email}`,
+  });
+  createAuditLog(req.user!.id, req.user!.email, "adjust_balance", "user", id, `Adjusted balance by ${amount} cents. Reason: ${reason || "N/A"}`);
+  res.json({ id, balance: newBalance, adjustment: amount, reason: reason || "N/A" });
+});
+
+// =============================================================================
+// AUDIT LOG
+// =============================================================================
+
+// GET /v1/admin/audit-log
+router.get("/admin/audit-log", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const pageSize = parseInt(req.query.page_size as string) || 20;
+  const action = req.query.action as string;
+  const adminId = req.query.admin_id as string;
+  let all = listAuditLogs();
+  if (action) all = all.filter((l) => l.action === action);
+  if (adminId) all = all.filter((l) => l.admin_id === adminId);
   res.json({ data: paginate(all, page, pageSize), meta: paginateMeta(all.length, page, pageSize) });
 });
 
