@@ -1,5 +1,14 @@
 import { Router, type IRouter } from "express";
-import { randomUUID } from "crypto";
+import { randomUUID, createHash } from "crypto";
+
+// Simple hash for demo. In production, use bcrypt or argon2.
+function hashPassword(password: string): string {
+  return createHash("sha256").update(password).digest("hex");
+}
+
+function verifyPassword(password: string, hash: string): boolean {
+  return hashPassword(password) === hash;
+}
 
 const router: IRouter = Router();
 
@@ -10,9 +19,10 @@ const router: IRouter = Router();
 const users: Map<string, {
   id: string;
   email: string;
-  password: string;
+  password_hash: string;
   display_name?: string;
   plan_tier: string;
+  role: string;
   is_active: boolean;
   total_spent: number;
   balance: number;
@@ -123,9 +133,10 @@ const adminId = "admin-001";
 users.set(adminId, {
   id: adminId,
   email: "admin@thinksync.ai",
-  password: "admin123",
+  password_hash: hashPassword("admin123"),
   display_name: "Admin",
   plan_tier: "enterprise",
+  role: "admin",
   is_active: true,
   total_spent: 0,
   balance: 0,
@@ -450,7 +461,7 @@ router.post("/auth/login", (req, res) => {
     return;
   }
   const user = [...users.values()].find((u) => u.email === email);
-  if (!user || user.password !== password) {
+  if (!user || !verifyPassword(password, user.password_hash)) {
     res.status(401).json({ error: { message: "Invalid email or password", code: "invalid_credentials" } });
     return;
   }
@@ -499,9 +510,10 @@ router.post("/auth/register", (req, res) => {
   const user = {
     id: userId,
     email,
-    password,
+    password_hash: hashPassword(password),
     display_name: display_name || null,
     plan_tier: "free",
+    role: "user",
     is_active: true,
     total_spent: 0,
     balance: 0,
@@ -706,7 +718,7 @@ function requireAdmin(req: { headers: { authorization?: string } }, res: { statu
   NonNullable<ReturnType<typeof authenticate>> | null {
   const auth = requireAuth(req, res);
   if (!auth) return null;
-  if (auth.user.email !== "admin@thinksync.ai") {
+  if (auth.user.role !== "admin") {
     res.status(403).json({ error: { message: "Forbidden", code: "forbidden" } });
     return null;
   }
