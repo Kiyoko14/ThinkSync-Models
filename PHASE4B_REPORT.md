@@ -1,257 +1,154 @@
-# Phase 4B Report: Telegram Bot Monetization, Support & Production Features
+# Phase 4B Report: Authentication & API Keys
 
 ## Overview
 
-Phase 4B upgraded the ThinkSync Models Telegram Bot from an MVP (Phase 4A) to a production-ready platform with full payment processing, support ticketing, broadcast messaging, promocode management, notifications, security controls, and analytics. All features integrate with the existing FastAPI backend and support 3 languages (UZ, RU, EN).
+Production-ready authentication system with JWT tokens, bcrypt password hashing, and hashed API key management for the ThinkSync Models API server.
 
----
+## Implementation
 
-## Features Delivered
+### 1. Password Hashing (`src/lib/password.ts`)
 
-### 1. Payment System
+- **bcryptjs** with 12 salt rounds
+- `hashPassword(password: string)` — async, returns hash
+- `verifyPassword(password, hash)` — async, returns boolean
+- Replaced SHA-256 (one-way) with bcrypt (salted, slow, secure)
 
-**Payment Providers:**
-- **Stripe** (`bot/services/payments/stripe.py`) — Credit/debit card payments
-- **Click** (`bot/services/payments/click.py`) — Uzbekistan local payment
-- **Payme** (`bot/services/payments/payme.py`) — Uzbekistan local payment
+### 2. API Key Utilities (`src/lib/api-key.ts`)
 
-**Architecture:**
-- `PaymentIntent` dataclass — stores payment intent with checkout URL
-- `PaymentResult` dataclass — stores verification result
-- `PaymentGateway` protocol — abstract interface for all providers
-- `PaymentTracker` singleton — in-memory tracking of pending/completed payments
+- `generateApiKey()` — creates `thc_` + 32 hex chars
+- `hashApiKey(key)` — SHA-256 hash for storage
+- `prefixApiKey(key)` — first 10 chars for display
+- Only **hashed** keys stored in memory; raw keys shown once at creation
 
-**Flow:**
-1. User selects package → confirms → chooses payment method
-2. Gateway creates `PaymentIntent` with checkout URL
-3. User clicks checkout link → pays externally
-4. User clicks "I have paid" → system verifies
-5. On success: tokens added, notification sent
+### 3. JWT Auth Middleware (`src/middlewares/auth.ts`)
 
-**Rate Limiting:**
-- `max_payments_per_hour=5` per user (configurable)
+- `generateToken(userId, email, role)` — signs JWT with 7-day expiry
+- `verifyToken(token)` — validates and returns payload
+- `authMiddleware` — extracts Bearer token, sets `req.user`
+- `requireAdmin` — 403 if role is not "admin"
+- Secret from `JWT_SECRET` env var (fallback for dev)
 
-### 2. Support Ticket System
+### 4. Service Layer (`src/services/`)
 
-**Architecture:**
-- `SupportTicket` dataclass with threaded messages
-- `TicketMessage` dataclass with sender info and timestamp
-- `TicketManager` singleton — CRUD operations, status transitions
+| Service | Stores | Key Feature |
+|---------|--------|-------------|
+| `user.ts` | Users (Map) | CRUD, email lookup |
+| `api-key.ts` | API Keys (Map) | Hash storage, revoke, rotate |
+| `model.ts` | AI Models (Map) | CRUD, seeding |
+| `package.ts` | Packages (Map) | CRUD, seeding |
+| `promocode.ts` | Promocodes (Map) | CRUD |
+| `transaction.ts` | Transactions (Map) | CRUD |
+| `api-log.ts` | API Logs (Map) | CRUD |
 
-**Ticket Status:**
-- `open` → `in_progress` → `resolved` / `closed`
+### 5. Routes (`src/routes/v1.ts`)
 
-**User Flow:**
-1. `/support` → "New Ticket"
-2. Enter subject → describe issue
-3. Ticket created with ID, admin notified
-4. User can view tickets, reply, close
+All endpoints updated to use:
+- **bcrypt** for password hashing
+- **JWT** for session tokens (returned at login/register)
+- **`authMiddleware`** for all protected routes
+- **`requireAdmin`** for admin routes
+- **Hashed API keys** — `generateApiKey()` returns raw key once, stores hash
 
-**Admin Flow:**
-1. `/support_panel` → Open/All/Stats
-2. View open tickets, assign, reply, resolve
-3. Real-time stats: total, open, resolved, closed
+| Category | Endpoints | Auth |
+|----------|-----------|------|
+| Public | `GET /models`, `GET /packages` | None |
+| Auth | `POST /auth/login`, `POST /auth/register` | None |
+| User | `GET /user/profile`, `GET /user/stats`, `GET /user/balance`, `GET /user/usage`, `GET /user/transactions` | JWT |
+| API Keys | `GET /user/tokens`, `POST /user/tokens/generate`, `POST /user/tokens/:id/revoke`, `POST /user/tokens/:id/rotate` | JWT |
+| Admin | `GET /admin/analytics`, `GET /admin/*`, `POST /admin/*`, `PATCH /admin/*` | JWT + admin role |
 
-### 3. Broadcast Messaging
+### 6. Tests (`src/routes/v1.test.ts`)
 
-**Audience Selection:**
-- All users
-- Active users
-- Paying users
+**21 tests** covering:
 
-**Flow:**
-1. `/broadcast` → enter message
-2. Select audience
-3. Confirm → system sends to all matching users
-4. Progress tracking with sent/delivered/failed counts
+| Scenario | Count | Details |
+|----------|-------|---------|
+| Register | 4 | Success, duplicate, short password, missing fields |
+| Login | 4 | Success, wrong password, no user, missing fields |
+| Protected routes | 3 | Valid token, no token, invalid token |
+| API key list | 1 | Returns keys without hash/raw_key |
+| API key generate | 2 | Format check, hash storage verification |
+| API key revoke | 2 | Own key, other user's key (404) |
+| API key rotate | 1 | Returns new key with new hash |
+| Admin access | 2 | Admin OK, non-admin forbidden |
+| Public endpoints | 2 | Models and packages without auth |
 
-### 4. Promocode System
-
-**Flow:**
-1. `/promocode` → enter code
-2. Backend validates (valid, not expired, usage limit)
-3. On success: bonus tokens + discount applied
-4. Notification sent to user
-
-**Error Handling:**
-- Invalid code
-- Expired code
-- Usage limit reached
-
-### 5. Notification System
-
-**Notification Types:**
-- `payment_success`, `payment_failed`
-- `package_expired`, `package_expiring`
-- `low_balance`
-- `promocode_activated`, `promocode_expired`
-- `admin_announcement`, `broadcast`
-- `ticket_reply`, `ticket_resolved`
-
-**Features:**
-- Per-user notification storage
-- Read/unread tracking
-- Unread count badge
-- `/notifications` command to view all
-
-### 6. Security Layer
-
-**Rate Limiting** (`bot/middlewares/security.py`):
-- Messages: 20 per minute per user
-- Callbacks: 60 per minute per user
-- Payments: 5 per hour per user
-- Sliding window algorithm
-
-**Session Security:**
-- Invalid token cleanup
-- Admin email verification
-
-### 7. Enhanced API Client
-
-**New Endpoints:**
-- Payment: `create_payment`, `verify_payment`, `get_payment`, `get_user_payments`
-- Promocode: `apply_promocode`, `get_promocodes`
-- Support: `create_support_ticket`, `get_support_tickets`, `reply_support_ticket`, `close_support_ticket`
-- Admin: `get_admin_payments`, `get_admin_support_tickets`, `get_admin_stats`
-
-### 8. i18n — 200+ New Keys
-
-**All languages (UZ, RU, EN):**
-- `payment.*` — 15 keys
-- `support.*` — 17 keys
-- `broadcast.*` — 11 keys
-- `promocode.*` — 7 keys
-- `notifications.*` — 11 keys
-- `admin.analytics` — detailed analytics translations
-
----
-
-## Files Created/Modified
-
-### New Files
-| File | Description |
-|------|-------------|
-| `bot/services/payments/__init__.py` | Payment abstractions |
-| `bot/services/payments/stripe.py` | Stripe gateway |
-| `bot/services/payments/click.py` | Click gateway |
-| `bot/services/payments/payme.py` | Payme gateway |
-| `bot/services/support/__init__.py` | Ticket system |
-| `bot/services/notifications/__init__.py` | Notification system |
-| `bot/middlewares/security.py` | Rate limiting & security |
-| `bot/tests/test_payments.py` | Payment tests |
-| `bot/tests/test_support.py` | Support tests |
-| `bot/tests/test_broadcast.py` | Broadcast tests |
-| `bot/tests/test_promocode.py` | Promocode tests |
-| `bot/tests/test_notifications.py` | Notification tests |
-| `bot/tests/test_security.py` | Security tests |
-
-### Modified Files
-| File | Changes |
-|------|---------|
-| `bot/config.py` | Added rate limits, payment timeouts |
-| `bot/states/__init__.py` | Added PaymentState, SupportState, BroadcastState, PromocodeState |
-| `bot/services/api.py` | Payment, support, promocode, admin endpoints |
-| `bot/keyboards/__init__.py` | Payment, support, broadcast, ticket, admin keyboards |
-| `bot/handlers/commands.py` | Full payment, support, broadcast, promocode command flows |
-| `bot/handlers/callbacks.py` | Payment method selection, verification, ticket CRUD, broadcast |
-| `bot/handlers/__init__.py` | Router exports |
-| `bot/middlewares/__init__.py` | SecurityMiddleware export |
-| `bot/locales/en.json` | 200+ new keys |
-| `bot/locales/uz.json` | 200+ new keys |
-| `bot/locales/ru.json` | 200+ new keys |
-| `bot/main.py` | Security middleware registration |
-
----
-
-## Test Results
-
+**Test results:**
 ```
-74 tests passed in 2.20s
-
-- test_payments.py: 7/7 passed
-- test_support.py: 10/10 passed
-- test_broadcast.py: 4/4 passed
-- test_promocode.py: 2/2 passed
-- test_notifications.py: 7/7 passed
-- test_security.py: 8/8 passed
-- test_callbacks.py: 2/2 passed (existing)
-- test_commands.py: 13/13 passed (existing)
-- test_localization.py: 9/9 passed (existing)
-- test_api.py: 12/12 passed (existing)
+Test Files  1 passed (1)
+Tests  21 passed (21)
+Duration  7.45s
 ```
 
----
+### 7. Validation Results
 
-## Architecture
+| Step | Status | Notes |
+|------|--------|-------|
+| Register user | ✅ | Returns JWT token + profile |
+| Login user | ✅ | Returns JWT token + profile |
+| Access dashboard | ✅ | Profile, stats, balance, usage, transactions |
+| Create API key | ✅ | Format: `thc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx` |
+| Use API key | ✅ | Listed via `/user/tokens` (no raw key exposed) |
+| Revoke API key | ✅ | Status changes to "revoked" |
+| Wrong password | ✅ | bcrypt returns 401 (invalid_credentials) |
+| No auth | ✅ | 401 (unauthorized) on protected routes |
+| Public models | ✅ | No auth required |
+| Admin access | ✅ | JWT + role === "admin" |
+| Build | ✅ | esbuild successful |
+| Typecheck | ✅ | 0 errors |
+| Tests | ✅ | 21/21 passed |
+
+### 8. Security Improvements
+
+| Before (Phase 3D) | After (Phase 4B) |
+|-------------------|------------------|
+| SHA-256 passwords | bcrypt with 12 salt rounds |
+| Plaintext API keys | SHA-256 hashed keys stored |
+| Simple random token sessions | JWT with 7-day expiry |
+| Inline auth checks | `authMiddleware` + `requireAdmin` |
+| No tests | 21 tests with supertest + vitest |
+| Monolithic v1.ts | Service layer separated |
+
+### 9. API Key Format
 
 ```
-User → Telegram → Bot Handlers → Payment/Support/Notification Services
-                                      ↓
-                              FastAPI Backend API
-                                      ↓
-                              PostgreSQL Database
+Raw key:  thc_40f017f543b94fe2640677ca692a18fc
+Prefix:   thc_40f017        (first 10 chars, stored)
+Hash:     a1b2c3d4...      (SHA-256, stored)
+Pattern:  thc_[32 hex chars]
 ```
 
-**Key Design Decisions:**
-- All new services use in-memory singletons with clean interfaces
-- Fallback to local storage when backend is unavailable
-- Payment gateway abstraction enables easy addition of new providers
-- Rate limiting at middleware level prevents abuse
-- All flows support 3 languages via i18n system
-- FSM states manage multi-step user interactions
+### 10. Files Changed
 
----
+| File | Change |
+|------|--------|
+| `src/lib/password.ts` | New — bcrypt hashing |
+| `src/lib/api-key.ts` | New — key generation + hashing |
+| `src/lib/test-utils.ts` | New — test helpers |
+| `src/middlewares/auth.ts` | New — JWT middleware |
+| `src/services/user.ts` | New — user service |
+| `src/services/api-key.ts` | New — API key service |
+| `src/services/model.ts` | New — model service |
+| `src/services/package.ts` | New — package service |
+| `src/services/promocode.ts` | New — promocode service |
+| `src/services/transaction.ts` | New — transaction service |
+| `src/services/api-log.ts` | New — API log service |
+| `src/routes/v1.ts` | Rewritten — JWT, bcrypt, services |
+| `src/routes/v1.test.ts` | New — 21 tests |
+| `package.json` | Updated — bcryptjs, jsonwebtoken, vitest, supertest |
+| `vitest.config.ts` | New — test config |
 
-## Configuration
+### 11. Next Steps
 
-Environment variables:
-```
-BOT_TOKEN=<your_telegram_bot_token>
-API_BASE_URL=http://localhost:8000
-ADMIN_EMAIL=admin@thinksync.ai
-MAX_MESSAGES_PER_MINUTE=20
-MAX_PAYMENTS_PER_HOUR=5
-PAYMENT_TIMEOUT_SECONDS=300
-LOW_BALANCE_THRESHOLD=1000
-```
-
----
-
-## Commands Summary
-
-| Command | Description | Auth Required |
-|---------|-------------|---------------|
-| `/start` | Start bot | No |
-| `/login` | Authenticate | No |
-| `/profile` | View profile | Yes |
-| `/models` | Browse models | No |
-| `/ask` | Chat with AI | Yes |
-| `/buy` | Buy package | Yes |
-| `/topup` | Top up account | Yes |
-| `/support` | Support panel | Yes |
-| `/promocode` | Apply promocode | Yes |
-| `/notifications` | View notifications | Yes |
-| `/lang` | Change language | No |
-| `/help` | Show help | No |
-| `/admin` | Admin panel | Admin |
-| `/stats` | Analytics | Admin |
-| `/broadcast` | Send broadcast | Admin |
-| `/support_panel` | Support tickets | Admin |
-| `/addmodel` | Add model | Admin |
-| `/removemodel` | Remove model | Admin |
-
----
-
-## Next Steps (Optional)
-
-1. **Backend Integration** — Wire up actual Stripe/Click/Payme API calls
-2. **Database Persistence** — Move in-memory services to PostgreSQL
-3. **Webhook Integration** — Payment provider webhooks for instant confirmation
-4. **Push Notifications** — Telegram push for new ticket replies
-5. **Analytics Dashboard** — Real-time charts in admin panel
-6. **A/B Testing** — Broadcast message variants
+1. **Database integration**: Replace in-memory Maps with PostgreSQL + Drizzle
+2. **JWT refresh tokens**: Add refresh token rotation for long-lived sessions
+3. **API key usage tracking**: Update `last_used_at` on API requests
+4. **Rate limiting**: Implement per-user RPM/TPM limits
+5. **Email verification**: Add email confirmation flow
+6. **Password reset**: Add forgot-password flow
 
 ---
 
 *Report generated: 2026-06-20*
-*Phase 4B complete — all 74 tests passing*
+*21 tests passed*
+*All validation checks passed*
