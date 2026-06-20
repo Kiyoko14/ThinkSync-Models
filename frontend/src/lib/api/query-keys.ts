@@ -1,0 +1,18 @@
+export const queryKeys = {
+  health: ["health"] as const,
+  models: ["models"] as const,
+  packages: ["packages"] as const,
+  profile: ["profile"] as const,
+  stats: ["stats"] as const,
+  balance: ["balance"] as const,
+  usage: ["usage"] as const,
+  transactions: ["transactions"] as const,
+  apiKeys: ["apiKeys"] as const,
+  adminAnalytics: ["adminAnalytics"] as const,
+  adminModels: (params: Record<string, unknown>) => ["adminModels", params] as const,
+  adminUsers: (params: Record<string, unknown>) => ["adminUsers", params] as const,
+  adminTransactions: (params: Record<string, unknown>) => ["adminTransactions", params] as const,
+  adminPackages: (params: Record<string, unknown>) => ["adminPackages", params] as const,
+  adminPromocodes: (params: Record<string, unknown>) => ["adminPromocodes", params] as const,
+  adminLogs: (params: Record<string, unknown>) => ["adminLogs", params] as const,
+};

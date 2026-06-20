@@ -1,0 +1,25 @@
+[Unit]
+Description=ThinkSync Models API Gateway
+After=network.target redis-server.service
+Wants=redis-server.service
+
+[Service]
+Type=simple
+User=thinksync
+Group=thinksync
+WorkingDirectory=/opt/thinksync/backend
+EnvironmentFile=/opt/thinksync/backend/.env
+ExecStart=/opt/thinksync/backend/scripts/start.sh
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+# Security hardening
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
