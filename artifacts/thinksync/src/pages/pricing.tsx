@@ -12,7 +12,7 @@ export default function PricingPage() {
   return (
     <Container className="py-10">
       <h1 className="text-3xl font-semibold">Pricing & Packages</h1>
-      <p className="mt-2 text-muted-foreground">Package catalog from /v1/packages.</p>
+      <p className="mt-2 text-muted-foreground">Available packages from ThinkSync Models.</p>
 
       {isLoading ? (
         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">

@@ -10,12 +10,12 @@ export default function HomePage() {
   return (
     <Container className="py-10 sm:py-16">
       <section className="space-y-6">
-        <Badge variant="secondary">SiliconFlow Gateway</Badge>
+        <Badge variant="secondary">ThinkSync Models</Badge>
         <h1 className="max-w-3xl text-3xl font-bold tracking-tight sm:text-5xl">
           AI API Gateway and Billing Platform
         </h1>
         <p className="max-w-2xl text-muted-foreground sm:text-lg">
-          Production-ready model gateway powered by SiliconFlow.
+          Production-ready AI model gateway with usage tracking, billing, and API key management.
         </p>
         <div className="flex flex-wrap gap-3">
           <Button asChild>
@@ -58,7 +58,7 @@ export default function HomePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Authenticate with your existing API key/JWT and operate against protected backend endpoints.
+            Sign in with your email and password, then manage API keys from your dashboard.
           </CardContent>
         </Card>
       </section>

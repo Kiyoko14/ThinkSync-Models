@@ -4,6 +4,8 @@ import type {
   PackageItem, PackageListResponse, Paginated, Profile, TransactionItem, UsageExtendedResponse, UserStats,
 } from "@/lib/types";
 
+export const API_BASE_URL = "https://api.thinksync.art";
+
 export class ApiClientError extends Error {
   status: number;
   code?: string;
@@ -31,7 +33,7 @@ function buildQuery(params: Record<string, string | number | boolean | null | un
 export class ApiClient {
   private readonly baseUrl: string;
 
-  constructor(baseUrl: string) {
+  constructor(baseUrl: string = API_BASE_URL) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
   }
 
@@ -49,6 +51,20 @@ export class ApiClient {
     }
     if (response.status === 204) return {} as T;
     return (await response.json()) as T;
+  }
+
+  async login(email: string, password: string): Promise<{ token: string; profile: Profile }> {
+    return this.request("/v1/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+  }
+
+  async register(email: string, password: string, displayName?: string): Promise<{ token: string; profile: Profile }> {
+    return this.request("/v1/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ email, password, display_name: displayName }),
+    });
   }
 
   async health() {

@@ -7,12 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { ApiClient } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth-store";
-import { useSettingsStore } from "@/store/settings-store";
 
 export default function LoginPage() {
   const setSession = useAuthStore((state) => state.setSession);
-  const baseUrl = useSettingsStore((state) => state.apiBaseUrl);
-  const setApiBaseUrl = useSettingsStore((state) => state.setApiBaseUrl);
   const [location] = useLocation();
 
   const nextPath = useMemo(() => {
@@ -20,8 +17,8 @@ export default function LoginPage() {
     return params.get("next") || "/dashboard";
   }, []);
 
-  const [token, setToken] = useState("");
-  const [apiBase, setApiBase] = useState(baseUrl);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,13 +28,13 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      setApiBaseUrl(apiBase);
-      const client = new ApiClient(apiBase);
-      const profile = await client.getProfile(token.trim());
-      setSession(token.trim(), profile);
+      const client = new ApiClient();
+      const { token, profile } = await client.login(email.trim(), password);
+      setSession(token, profile);
       window.location.href = nextPath;
     } catch (e) {
-      setError((e as Error).message);
+      const err = e as Error;
+      setError(err.message || "Invalid email or password.");
     } finally {
       setLoading(false);
     }
@@ -48,25 +45,53 @@ export default function LoginPage() {
       <Card className="mx-auto max-w-lg">
         <CardHeader>
           <CardTitle>Login</CardTitle>
-          <CardDescription>Authenticate using your backend API key (thc_...) or JWT token.</CardDescription>
+          <CardDescription>Sign in with your email and password.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Backend URL</label>
-              <Input value={apiBase} onChange={(e) => setApiBase(e.target.value)} required />
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                disabled={loading}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">API key or JWT</label>
-              <Input value={token} onChange={(e) => setToken(e.target.value)} placeholder="thc_..." required />
+              <label className="text-sm font-medium">Password</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+                disabled={loading}
+              />
             </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
+            {error ? (
+              <div className="rounded-md border border-red-500/40 bg-red-500/5 p-3 text-sm text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            ) : null}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : "Sign in"}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Signing in...
+                </span>
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </form>
           <p className="mt-4 text-sm text-muted-foreground">
-            Need onboarding help? <Link className="underline" href="/register">Go to register page</Link>.
+            Don&apos;t have an account?{" "}
+            <Link className="underline" href="/register">
+              Register
+            </Link>
           </p>
         </CardContent>
       </Card>

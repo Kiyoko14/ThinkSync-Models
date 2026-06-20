@@ -7,16 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { ApiClient } from "@/lib/api/client";
 import { useAuthStore } from "@/store/auth-store";
-import { useSettingsStore } from "@/store/settings-store";
 
 export default function RegisterPage() {
   const setSession = useAuthStore((state) => state.setSession);
-  const baseUrl = useSettingsStore((state) => state.apiBaseUrl);
-  const setApiBaseUrl = useSettingsStore((state) => state.setApiBaseUrl);
 
-  const [apiBase, setApiBase] = useState(baseUrl);
-  const [token, setToken] = useState("");
-  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,14 +25,29 @@ export default function RegisterPage() {
     setError(null);
     setStatus(null);
 
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      setApiBaseUrl(apiBase);
-      const client = new ApiClient(apiBase);
-      const profile = await client.getProfile(token.trim());
-      setSession(token.trim(), { ...profile, display_name: name || profile.display_name });
-      setStatus("Account connected successfully. You can open dashboard now.");
+      const client = new ApiClient();
+      const { token, profile } = await client.register(email.trim(), password, displayName.trim() || undefined);
+      setSession(token, profile);
+      setStatus("Account created successfully! Redirecting to dashboard...");
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1500);
     } catch (e) {
-      setError((e as Error).message);
+      const err = e as Error;
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -44,31 +57,74 @@ export default function RegisterPage() {
     <Container className="py-10">
       <Card className="mx-auto max-w-lg">
         <CardHeader>
-          <CardTitle>Register / Connect account</CardTitle>
-          <CardDescription>This page connects your existing backend identity into the frontend session.</CardDescription>
+          <CardTitle>Create Account</CardTitle>
+          <CardDescription>Register to get started with ThinkSync Models.</CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={onSubmit}>
             <div className="space-y-2">
               <label className="text-sm font-medium">Display name</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ali Valiyev" />
+              <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ali Valiyev" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Backend URL</label>
-              <Input value={apiBase} onChange={(e) => setApiBase(e.target.value)} required />
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+                disabled={loading}
+              />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">API key or JWT</label>
-              <Input value={token} onChange={(e) => setToken(e.target.value)} required />
+              <label className="text-sm font-medium">Password</label>
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="At least 8 characters"
+                required
+                disabled={loading}
+              />
             </div>
-            {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            {status ? <p className="text-sm text-emerald-600 dark:text-emerald-400">{status}</p> : null}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Confirm password</label>
+              <Input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repeat your password"
+                required
+                disabled={loading}
+              />
+            </div>
+            {error ? (
+              <div className="rounded-md border border-red-500/40 bg-red-500/5 p-3 text-sm text-red-600 dark:text-red-400">
+                {error}
+              </div>
+            ) : null}
+            {status ? (
+              <div className="rounded-md border border-emerald-500/40 bg-emerald-500/5 p-3 text-sm text-emerald-600 dark:text-emerald-400">
+                {status}
+              </div>
+            ) : null}
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Connecting..." : "Connect account"}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Creating account...
+                </span>
+              ) : (
+                "Create account"
+              )}
             </Button>
           </form>
           <p className="mt-4 text-sm text-muted-foreground">
-            After connecting, continue to <Link className="underline" href="/dashboard">dashboard</Link>.
+            Already have an account?{" "}
+            <Link className="underline" href="/login">
+              Sign in
+            </Link>
           </p>
         </CardContent>
       </Card>
