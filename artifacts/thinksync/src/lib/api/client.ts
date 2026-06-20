@@ -6,6 +6,19 @@ import type {
 
 export const API_BASE_URL = "https://api.thinksync.art";
 
+// During development, override the API base URL to point to the local backend
+const DEV_API_BASE_URL = "http://localhost:8080/api";
+
+function getApiBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    // Check if we're in a local dev environment
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return DEV_API_BASE_URL;
+    }
+  }
+  return API_BASE_URL;
+}
+
 export class ApiClientError extends Error {
   status: number;
   code?: string;
@@ -33,8 +46,8 @@ function buildQuery(params: Record<string, string | number | boolean | null | un
 export class ApiClient {
   private readonly baseUrl: string;
 
-  constructor(baseUrl: string = API_BASE_URL) {
-    this.baseUrl = baseUrl.replace(/\/$/, "");
+  constructor(baseUrl?: string) {
+    this.baseUrl = (baseUrl || getApiBaseUrl()).replace(/\/$/, "");
   }
 
   private async request<T>(path: string, init?: RequestInit, token?: string | null): Promise<T> {

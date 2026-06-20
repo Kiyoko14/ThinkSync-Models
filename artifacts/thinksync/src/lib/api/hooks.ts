@@ -1,11 +1,11 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ApiClient, API_BASE_URL } from "@/lib/api/client";
+import { ApiClient } from "@/lib/api/client";
 import { queryKeys } from "@/lib/api/query-keys";
 import { useAuthStore } from "@/store/auth-store";
 
-const apiClient = new ApiClient(API_BASE_URL);
+const apiClient = new ApiClient();
 
 function useToken() {
   return useAuthStore((state) => state.token);
