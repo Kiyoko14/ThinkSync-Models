@@ -1,11 +1,40 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useBalanceQuery, usePackagesQuery, useTransactionsQuery } from "@/lib/api/hooks";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useBillingQuery, useTransactionsQuery, usePaymentRequestsQuery, useCreatePaymentRequestMutation } from "@/lib/api/hooks";
+import { toast } from "sonner";
 
 export default function DashboardBillingPage() {
-  const balance = useBalanceQuery();
+  const billing = useBillingQuery();
   const transactions = useTransactionsQuery();
-  const packages = usePackagesQuery();
+  const paymentRequests = usePaymentRequestsQuery();
+  const createPaymentRequest = useCreatePaymentRequestMutation();
+
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [screenshotUrl, setScreenshotUrl] = useState("");
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const num = Number(amount);
+    if (!num || num <= 0) {
+      toast.error("Amount must be a positive number");
+      return;
+    }
+    createPaymentRequest.mutate(
+      { amount: num, currency, screenshot_url: screenshotUrl || undefined },
+      {
+        onSuccess: () => {
+          toast.success("Payment request submitted");
+          setAmount("");
+          setScreenshotUrl("");
+        },
+        onError: (err) => toast.error(err.message),
+      }
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -13,30 +42,69 @@ export default function DashboardBillingPage() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader><CardTitle>Wallet balance</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{balance.data?.balance ?? 0}</CardContent>
+          <CardContent className="text-2xl font-semibold">${(billing.data?.balance ?? 0) / 100}</CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Package tokens</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{balance.data?.active_package_tokens ?? 0}</CardContent>
+          <CardHeader><CardTitle>Total spent</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">${(billing.data?.total_spent ?? 0) / 100}</CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle>Total available</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{balance.data?.total_available ?? 0}</CardContent>
+          <CardHeader><CardTitle>Total requests</CardTitle></CardHeader>
+          <CardContent className="text-2xl font-semibold">{billing.data?.total_requests ?? 0}</CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Current packages</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Payment request</CardTitle></CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {packages.data?.map((pkg) => (
-              <div key={pkg.id} className="rounded-md border p-3 text-sm">
-                <p className="font-medium">{pkg.name}</p>
-                <p className="text-muted-foreground">{pkg.display_price}</p>
-                <p className="text-muted-foreground">{(pkg.token_amount + pkg.bonus_tokens).toLocaleString()} tokens</p>
-              </div>
-            ))}
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-3">
+              <Input type="number" placeholder="Amount (cents)" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <select value={currency} onChange={(e) => setCurrency(e.target.value)} className="rounded-md border px-3 py-2 text-sm">
+                <option value="USD">USD</option>
+                <option value="UZS">UZS</option>
+              </select>
+              <Input placeholder="Screenshot URL (optional)" value={screenshotUrl} onChange={(e) => setScreenshotUrl(e.target.value)} />
+            </div>
+            <Button type="submit" disabled={createPaymentRequest.isPending}>Submit payment request</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Payment requests</CardTitle></CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Amount</TableHead>
+                <TableHead>Currency</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(paymentRequests.data || []).map((pr) => (
+                <TableRow key={pr.id}>
+                  <TableCell>{pr.amount}</TableCell>
+                  <TableCell>{pr.currency}</TableCell>
+                  <TableCell>
+                    <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                      pr.status === "pending" ? "bg-yellow-100 text-yellow-800" :
+                      pr.status === "approved" ? "bg-green-100 text-green-800" :
+                      "bg-red-100 text-red-800"
+                    }`}>{pr.status}</span>
+                  </TableCell>
+                  <TableCell>{pr.created_at ? new Date(pr.created_at).toLocaleString() : "-"}</TableCell>
+                </TableRow>
+              ))}
+              {(paymentRequests.data || []).length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">No payment requests</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
 

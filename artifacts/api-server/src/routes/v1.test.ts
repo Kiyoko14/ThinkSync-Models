@@ -471,3 +471,228 @@ describe("GET /packages", () => {
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 });
+
+// =============================================================================
+// BILLING
+// =============================================================================
+
+describe("POST /billing/calculate", () => {
+  it("calculates cost for a model", async () => {
+    const res = await request(app).post(`${API}/billing/calculate`).send({
+      model_id: "gpt-4o",
+      input_tokens: 1_000_000,
+      output_tokens: 0,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.cost).toBe(250); // $2.50/1M = 250 cents
+    expect(res.body.model_slug).toBe("gpt-4o");
+  });
+
+  it("returns 0 for unknown model", async () => {
+    const res = await request(app).post(`${API}/billing/calculate`).send({
+      model_id: "unknown-model",
+      input_tokens: 1000,
+      output_tokens: 1000,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.cost).toBe(0);
+  });
+
+  it("rejects missing fields", async () => {
+    const res = await request(app).post(`${API}/billing/calculate`).send({
+      model_id: "gpt-4o",
+      input_tokens: 1000,
+    });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("missing_fields");
+  });
+});
+
+describe("POST /billing/charge", () => {
+  it("charges user balance for API usage", async () => {
+    const { user } = await createTestUser("charge@example.com", "password123", { balance: 1000 });
+    const token = generateToken(user.id, user.email, user.role);
+    const res = await request(app)
+      .post(`${API}/billing/charge`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        model_id: "gpt-4o-mini",
+        input_tokens: 1_000_000,
+        output_tokens: 0,
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.cost).toBe(15); // $0.15/1M = 15 cents
+    expect(res.body.balance_after).toBe(985);
+  });
+
+  it("returns 402 for insufficient balance", async () => {
+    const { user } = await createTestUser("poor@example.com", "password123", { balance: 5 });
+    const token = generateToken(user.id, user.email, user.role);
+    const res = await request(app)
+      .post(`${API}/billing/charge`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        model_id: "gpt-4o-mini",
+        input_tokens: 1_000_000,
+        output_tokens: 0,
+      });
+    expect(res.status).toBe(402);
+    expect(res.body.error.code).toBe("insufficient_balance");
+    expect(res.body.error.cost).toBe(15);
+  });
+});
+
+describe("GET /user/billing", () => {
+  it("returns billing summary", async () => {
+    const { user } = await createTestUser("billing@example.com", "password123", { balance: 500 });
+    const token = generateToken(user.id, user.email, user.role);
+    const res = await request(app)
+      .get(`${API}/user/billing`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.balance).toBe(500);
+    expect(res.body).toHaveProperty("total_spent");
+    expect(res.body).toHaveProperty("total_requests");
+    expect(res.body).toHaveProperty("total_tokens");
+    expect(res.body).toHaveProperty("total_cost_usd");
+  });
+});
+
+// =============================================================================
+// PAYMENT REQUESTS
+// =============================================================================
+
+describe("POST /user/payment-requests", () => {
+  it("creates a payment request", async () => {
+    const { user } = await createTestUser("pr@example.com", "password123");
+    const token = generateToken(user.id, user.email, user.role);
+    const res = await request(app)
+      .post(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ amount: 5000, currency: "USD", screenshot_url: "http://example.com/screenshot.png" });
+    expect(res.status).toBe(201);
+    expect(res.body.amount).toBe(5000);
+    expect(res.body.currency).toBe("USD");
+    expect(res.body.status).toBe("pending");
+    expect(res.body.screenshot_url).toBe("http://example.com/screenshot.png");
+  });
+
+  it("rejects invalid amount", async () => {
+    const { user } = await createTestUser("pr2@example.com", "password123");
+    const token = generateToken(user.id, user.email, user.role);
+    const res = await request(app)
+      .post(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ amount: -100, currency: "USD" });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("invalid_amount");
+  });
+});
+
+describe("GET /user/payment-requests", () => {
+  it("lists user payment requests", async () => {
+    const { user } = await createTestUser("pr3@example.com", "password123");
+    const token = generateToken(user.id, user.email, user.role);
+    await request(app)
+      .post(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${token}`)
+      .send({ amount: 1000, currency: "USD" });
+    const res = await request(app)
+      .get(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBe(1);
+    expect(res.body[0].amount).toBe(1000);
+  });
+});
+
+describe("GET /admin/payment-requests", () => {
+  it("lists all payment requests for admin", async () => {
+    const { user: admin } = await createTestUser("admin7@example.com", "password123", { role: "admin" });
+    const { user: regular } = await createTestUser("regular@example.com", "password123");
+    const adminToken = generateToken(admin.id, admin.email, admin.role);
+    const userToken = generateToken(regular.id, regular.email, regular.role);
+    await request(app)
+      .post(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ amount: 2000, currency: "USD" });
+    const res = await request(app)
+      .get(`${API}/admin/payment-requests`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+    expect(res.body.length).toBeGreaterThan(0);
+  });
+
+  it("rejects non-admin", async () => {
+    const { user } = await createTestUser("user7@example.com", "password123");
+    const token = generateToken(user.id, user.email, user.role);
+    const res = await request(app)
+      .get(`${API}/admin/payment-requests`)
+      .set("Authorization", `Bearer ${token}`);
+    expect(res.status).toBe(403);
+  });
+});
+
+describe("POST /admin/payment-requests/:id/approve", () => {
+  it("approves payment request and adds balance", async () => {
+    const { user: admin } = await createTestUser("admin8@example.com", "password123", { role: "admin" });
+    const { user: regular } = await createTestUser("req@example.com", "password123", { balance: 0 });
+    const adminToken = generateToken(admin.id, admin.email, admin.role);
+    const userToken = generateToken(regular.id, regular.email, regular.role);
+    const prRes = await request(app)
+      .post(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ amount: 5000, currency: "USD" });
+    const prId = prRes.body.id;
+    const res = await request(app)
+      .post(`${API}/admin/payment-requests/${prId}/approve`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ note: "Approved" });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("approved");
+    expect(res.body.balance_after).toBe(5000);
+  });
+
+  it("rejects already processed request", async () => {
+    const { user: admin } = await createTestUser("admin9@example.com", "password123", { role: "admin" });
+    const { user: regular } = await createTestUser("req2@example.com", "password123");
+    const adminToken = generateToken(admin.id, admin.email, admin.role);
+    const userToken = generateToken(regular.id, regular.email, regular.role);
+    const prRes = await request(app)
+      .post(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ amount: 1000, currency: "USD" });
+    const prId = prRes.body.id;
+    await request(app)
+      .post(`${API}/admin/payment-requests/${prId}/approve`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    const res = await request(app)
+      .post(`${API}/admin/payment-requests/${prId}/approve`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe("already_processed");
+  });
+});
+
+describe("POST /admin/payment-requests/:id/reject", () => {
+  it("rejects payment request", async () => {
+    const { user: admin } = await createTestUser("admin10@example.com", "password123", { role: "admin" });
+    const { user: regular } = await createTestUser("req3@example.com", "password123");
+    const adminToken = generateToken(admin.id, admin.email, admin.role);
+    const userToken = generateToken(regular.id, regular.email, regular.role);
+    const prRes = await request(app)
+      .post(`${API}/user/payment-requests`)
+      .set("Authorization", `Bearer ${userToken}`)
+      .send({ amount: 1000, currency: "USD" });
+    const prId = prRes.body.id;
+    const res = await request(app)
+      .post(`${API}/admin/payment-requests/${prId}/reject`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ note: "Invalid screenshot" });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe("rejected");
+  });
+});

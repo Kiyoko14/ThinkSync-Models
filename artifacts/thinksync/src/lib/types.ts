@@ -54,6 +54,28 @@ export interface BalanceResponse {
   total_available: number;
 }
 
+export interface BillingResponse {
+  balance: number;
+  total_spent: number;
+  total_requests: number;
+  total_tokens: number;
+  total_cost_usd: number;
+}
+
+export interface PaymentRequestItem {
+  id: string;
+  user_id: string;
+  amount: number;
+  currency: string;
+  screenshot_url?: string | null;
+  status: "pending" | "approved" | "rejected";
+  admin_id?: string | null;
+  admin_email?: string | null;
+  admin_note?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface UsageExtendedResponse {
   total_requests: number;
   total_tokens: number;

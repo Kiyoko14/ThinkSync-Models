@@ -48,6 +48,48 @@ export function useTransactionsQuery() {
   return useQuery({ queryKey: queryKeys.transactions, enabled: Boolean(token), queryFn: () => apiClient.getTransactions(token as string) });
 }
 
+export function useBillingQuery() {
+  const token = useToken();
+  return useQuery({ queryKey: queryKeys.billing, enabled: Boolean(token), queryFn: () => apiClient.getBilling(token as string) });
+}
+
+export function usePaymentRequestsQuery() {
+  const token = useToken();
+  return useQuery({ queryKey: queryKeys.paymentRequests, enabled: Boolean(token), queryFn: () => apiClient.getPaymentRequests(token as string) });
+}
+
+export function useCreatePaymentRequestMutation() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { amount: number; currency: string; screenshot_url?: string }) => apiClient.createPaymentRequest(token as string, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.paymentRequests }),
+  });
+}
+
+export function useAdminPaymentRequestsQuery(status?: string) {
+  const token = useToken();
+  return useQuery({ queryKey: queryKeys.adminPaymentRequests(status), enabled: Boolean(token), queryFn: () => apiClient.listAdminPaymentRequests(token as string, status) });
+}
+
+export function useApprovePaymentRequestMutation() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => apiClient.approvePaymentRequest(token as string, id, note),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminPaymentRequests() }),
+  });
+}
+
+export function useRejectPaymentRequestMutation() {
+  const token = useToken();
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, note }: { id: string; note?: string }) => apiClient.rejectPaymentRequest(token as string, id, note),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.adminPaymentRequests() }),
+  });
+}
+
 export function useApiKeysQuery() {
   const token = useToken();
   return useQuery({ queryKey: queryKeys.apiKeys, enabled: Boolean(token), queryFn: () => apiClient.getApiKeys(token as string) });

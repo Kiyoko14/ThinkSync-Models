@@ -1,7 +1,7 @@
 import type {
   AdminAnalytics, AdminApiLog, AdminModel, AdminPackage, AdminPromocode, AdminTransaction, AdminUser,
-  ApiErrorShape, ApiKeyCreateResponse, ApiKeyItem, BalanceResponse, ModelItem, ModelListResponse,
-  PackageItem, PackageListResponse, Paginated, Profile, TransactionItem, UsageExtendedResponse, UserStats,
+  ApiErrorShape, ApiKeyCreateResponse, ApiKeyItem, BalanceResponse, BillingResponse, ModelItem, ModelListResponse,
+  PackageItem, PackageListResponse, Paginated, PaymentRequestItem, Profile, TransactionItem, UsageExtendedResponse, UserStats,
 } from "@/lib/types";
 
 export const API_BASE_URL = "https://api.thinksync.art";
@@ -202,5 +202,30 @@ export class ApiClient {
   async listAdminLogs(token: string, params: { page: number; pageSize: number; profileId?: string; modelSlug?: string; status?: string; search?: string }): Promise<Paginated<AdminApiLog>> {
     const query = buildQuery({ page: params.page, page_size: params.pageSize, profile_id: params.profileId, model_slug: params.modelSlug, status: params.status, search: params.search });
     return this.request<Paginated<AdminApiLog>>(`/v1/admin/logs${query}`, undefined, token);
+  }
+
+  async getBilling(token: string): Promise<BillingResponse> {
+    return this.request<BillingResponse>("/v1/user/billing", undefined, token);
+  }
+
+  async getPaymentRequests(token: string): Promise<PaymentRequestItem[]> {
+    return this.request<PaymentRequestItem[]>("/v1/user/payment-requests", undefined, token);
+  }
+
+  async createPaymentRequest(token: string, payload: { amount: number; currency: string; screenshot_url?: string }): Promise<PaymentRequestItem> {
+    return this.request<PaymentRequestItem>("/v1/user/payment-requests", { method: "POST", body: JSON.stringify(payload) }, token);
+  }
+
+  async listAdminPaymentRequests(token: string, status?: string): Promise<PaymentRequestItem[]> {
+    const query = buildQuery({ status });
+    return this.request<PaymentRequestItem[]>(`/v1/admin/payment-requests${query}`, undefined, token);
+  }
+
+  async approvePaymentRequest(token: string, id: string, note?: string): Promise<{ id: string; status: string; balance_after: number }> {
+    return this.request<{ id: string; status: string; balance_after: number }>(`/v1/admin/payment-requests/${id}/approve`, { method: "POST", body: JSON.stringify({ note }) }, token);
+  }
+
+  async rejectPaymentRequest(token: string, id: string, note?: string): Promise<{ id: string; status: string }> {
+    return this.request<{ id: string; status: string }>(`/v1/admin/payment-requests/${id}/reject`, { method: "POST", body: JSON.stringify({ note }) }, token);
   }
 }

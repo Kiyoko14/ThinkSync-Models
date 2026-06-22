@@ -8,6 +8,8 @@ export const queryKeys = {
   usage: ["usage"] as const,
   transactions: ["transactions"] as const,
   apiKeys: ["apiKeys"] as const,
+  billing: ["billing"] as const,
+  paymentRequests: ["paymentRequests"] as const,
   adminAnalytics: ["adminAnalytics"] as const,
   adminModels: (params: Record<string, unknown>) => ["adminModels", params] as const,
   adminUsers: (params: Record<string, unknown>) => ["adminUsers", params] as const,
@@ -15,4 +17,5 @@ export const queryKeys = {
   adminPackages: (params: Record<string, unknown>) => ["adminPackages", params] as const,
   adminPromocodes: (params: Record<string, unknown>) => ["adminPromocodes", params] as const,
   adminLogs: (params: Record<string, unknown>) => ["adminLogs", params] as const,
+  adminPaymentRequests: (status?: string) => ["adminPaymentRequests", status] as const,
 };

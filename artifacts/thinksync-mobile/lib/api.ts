@@ -73,6 +73,28 @@ export interface BalanceResponse {
   total_available: number;
 }
 
+export interface BillingResponse {
+  balance: number;
+  total_spent: number;
+  total_requests: number;
+  total_tokens: number;
+  total_cost_usd: number;
+}
+
+export interface PaymentRequestItem {
+  id: string;
+  user_id: string;
+  amount: number;
+  currency: string;
+  screenshot_url?: string | null;
+  status: "pending" | "approved" | "rejected";
+  admin_id?: string | null;
+  admin_email?: string | null;
+  admin_note?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface UsageExtendedResponse {
   total_requests: number;
   total_tokens: number;
@@ -127,4 +149,10 @@ export const apiClient = {
     request<ApiKeyCreateResponse>("/v1/user/tokens/generate", { method: "POST", body: JSON.stringify({ name }) }, token),
   revokeApiKey: (token: string, keyId: string) =>
     request<{ id: string; status: string }>(`/v1/user/tokens/${keyId}/revoke`, { method: "POST" }, token),
+  getBilling: (token: string) => request<BillingResponse>("/v1/user/billing", undefined, token),
+  getPaymentRequests: (token: string) => request<PaymentRequestItem[]>("/v1/user/payment-requests", undefined, token),
+  createPaymentRequest: (token: string, payload: { amount: number; currency: string; screenshot_url?: string }) =>
+    request<PaymentRequestItem>("/v1/user/payment-requests", { method: "POST", body: JSON.stringify(payload) }, token),
+  calculateCost: (modelId: string, inputTokens: number, outputTokens: number) =>
+    request<{ cost: number; model_slug: string }>("/v1/billing/calculate", { method: "POST", body: JSON.stringify({ model_id: modelId, input_tokens: inputTokens, output_tokens: outputTokens }) }),
 };

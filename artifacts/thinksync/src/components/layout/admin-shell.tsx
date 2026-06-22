@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { BarChart3, Box, FileText, Gift, LayoutDashboard, Package, Users, Tag } from "lucide-react";
+import { BarChart3, Box, CreditCard, FileText, Gift, LayoutDashboard, Package, Users, Tag } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -9,6 +9,7 @@ const items = [
   { href: "/admin/models", label: "Models", icon: Box },
   { href: "/admin/users", label: "Users", icon: Users },
   { href: "/admin/transactions", label: "Transactions", icon: FileText },
+  { href: "/admin/payment-requests", label: "Payment Requests", icon: CreditCard },
   { href: "/admin/packages", label: "Packages", icon: Package },
   { href: "/admin/promocodes", label: "Promocodes", icon: Tag },
   { href: "/admin/logs", label: "Audit Logs", icon: BarChart3 },

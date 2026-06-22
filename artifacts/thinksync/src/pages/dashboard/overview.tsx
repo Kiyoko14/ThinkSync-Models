@@ -1,10 +1,10 @@
 import { StatCard } from "@/components/common/stat-card";
-import { useBalanceQuery, useProfileQuery, useStatsQuery } from "@/lib/api/hooks";
+import { useBillingQuery, useProfileQuery, useStatsQuery } from "@/lib/api/hooks";
 
 export default function DashboardOverviewPage() {
   const profile = useProfileQuery();
   const stats = useStatsQuery();
-  const balance = useBalanceQuery();
+  const billing = useBillingQuery();
 
   return (
     <div className="space-y-6">
@@ -13,7 +13,7 @@ export default function DashboardOverviewPage() {
         <StatCard title="Email" value={profile.data?.email || "-"} />
         <StatCard title="Requests" value={String(stats.data?.total_requests ?? 0)} />
         <StatCard title="Total tokens" value={String(stats.data?.total_tokens ?? 0)} />
-        <StatCard title="Available tokens" value={String(balance.data?.total_available ?? 0)} />
+        <StatCard title="Balance" value={`$${((billing.data?.balance ?? 0) / 100).toFixed(2)}`} />
       </div>
     </div>
   );

@@ -10,6 +10,8 @@ import { createPackage, listPackages, updatePackage } from "../services/package"
 import { createPromocode, listPromocodes, updatePromocode } from "../services/promocode";
 import { createApiLog, listApiLogs } from "../services/api-log";
 import { createAuditLog, listAuditLogs } from "../services/audit-log";
+import { createPaymentRequest, listPaymentRequests, getPaymentRequestById, updatePaymentRequest } from "../services/payment-request";
+import { chargeUser, calculateCost } from "../services/billing";
 
 const router: IRouter = Router();
 
@@ -659,6 +661,167 @@ router.get("/admin/audit-log", authMiddleware, requireAdmin, (req: Authenticated
   if (action) all = all.filter((l) => l.action === action);
   if (adminId) all = all.filter((l) => l.admin_id === adminId);
   res.json({ data: paginate(all, page, pageSize), meta: paginateMeta(all.length, page, pageSize) });
+});
+
+// =============================================================================
+// BILLING
+// =============================================================================
+
+// POST /v1/billing/charge — charge user for API usage
+router.post("/billing/charge", authMiddleware, (req: AuthenticatedRequest, res) => {
+  const { model_id, input_tokens, output_tokens } = req.body || {};
+  if (!model_id || typeof input_tokens !== "number" || typeof output_tokens !== "number") {
+    res.status(400).json({ error: { message: "model_id, input_tokens, output_tokens required", code: "missing_fields" } });
+    return;
+  }
+  const result = chargeUser({
+    user_id: req.user!.id,
+    model_id,
+    input_tokens,
+    output_tokens,
+    ip_address: req.ip || req.socket.remoteAddress || undefined,
+    user_agent: req.headers["user-agent"],
+  });
+  if (!result.success) {
+    if (result.error === "insufficient_balance") {
+      res.status(402).json({ error: { message: "Insufficient balance", code: "insufficient_balance", cost: result.cost, balance: result.balance_before } });
+      return;
+    }
+    res.status(400).json({ error: { message: result.error, code: "charge_failed" } });
+    return;
+  }
+  res.json({ success: true, cost: result.cost, balance_after: result.balance_after, log_id: result.log_id });
+});
+
+// POST /v1/billing/calculate — calculate cost without charging
+router.post("/billing/calculate", (req, res) => {
+  const { model_id, input_tokens, output_tokens } = req.body || {};
+  if (!model_id || typeof input_tokens !== "number" || typeof output_tokens !== "number") {
+    res.status(400).json({ error: { message: "model_id, input_tokens, output_tokens required", code: "missing_fields" } });
+    return;
+  }
+  const result = calculateCost(model_id, input_tokens, output_tokens);
+  res.json({ cost: result.cost, model_slug: result.model_slug });
+});
+
+// GET /v1/user/billing — billing summary
+router.get("/user/billing", authMiddleware, (req: AuthenticatedRequest, res) => {
+  const user = getUserById(req.user!.id);
+  if (!user) {
+    res.status(404).json({ error: { message: "User not found", code: "user_not_found" } });
+    return;
+  }
+  const userLogs = listApiLogs().filter((l) => l.profile_id === user.id);
+  const total_cost = userLogs.reduce((sum, l) => sum + l.estimated_cost, 0);
+  const total_tokens = userLogs.reduce((sum, l) => sum + l.total_tokens, 0);
+  const total_requests = userLogs.length;
+  res.json({
+    balance: user.balance,
+    total_spent: user.total_spent,
+    total_requests,
+    total_tokens,
+    total_cost_usd: total_cost,
+  });
+});
+
+// =============================================================================
+// PAYMENT REQUESTS (User)
+// =============================================================================
+
+// POST /v1/user/payment-requests
+router.post("/user/payment-requests", authMiddleware, (req: AuthenticatedRequest, res) => {
+  const { amount, currency, screenshot_url } = req.body || {};
+  if (!amount || typeof amount !== "number" || amount <= 0) {
+    res.status(400).json({ error: { message: "Amount must be a positive number", code: "invalid_amount" } });
+    return;
+  }
+  const pr = createPaymentRequest({
+    user_id: req.user!.id,
+    amount,
+    currency: currency || "USD",
+    screenshot_url: screenshot_url || null,
+  });
+  res.status(201).json(pr);
+});
+
+// GET /v1/user/payment-requests
+router.get("/user/payment-requests", authMiddleware, (req: AuthenticatedRequest, res) => {
+  const reqs = listPaymentRequests({ user_id: req.user!.id });
+  res.json(reqs);
+});
+
+// =============================================================================
+// PAYMENT REQUESTS (Admin)
+// =============================================================================
+
+// GET /v1/admin/payment-requests
+router.get("/admin/payment-requests", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
+  const status = req.query.status as string;
+  const reqs = listPaymentRequests({ status: status || undefined });
+  res.json(reqs);
+});
+
+// POST /v1/admin/payment-requests/:id/approve
+router.post("/admin/payment-requests/:id/approve", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
+  const id = req.params.id as string;
+  const { note } = req.body || {};
+  const pr = getPaymentRequestById(id);
+  if (!pr) {
+    res.status(404).json({ error: { message: "Payment request not found", code: "not_found" } });
+    return;
+  }
+  if (pr.status !== "pending") {
+    res.status(400).json({ error: { message: "Payment request already processed", code: "already_processed" } });
+    return;
+  }
+  const user = getUserById(pr.user_id);
+  if (!user) {
+    res.status(404).json({ error: { message: "User not found", code: "user_not_found" } });
+    return;
+  }
+  const newBalance = user.balance + pr.amount;
+  updateUser(user.id, { balance: newBalance });
+  createTransaction({
+    profile_id: user.id,
+    amount: pr.amount,
+    balance_after: newBalance,
+    transaction_type: "payment_approved",
+    status: "completed",
+    description: `Payment request approved by ${req.user!.email}`,
+    reference_type: "payment_request",
+    reference_id: pr.id,
+  });
+  updatePaymentRequest(id, {
+    status: "approved",
+    admin_id: req.user!.id,
+    admin_email: req.user!.email,
+    admin_note: note || null,
+  });
+  createAuditLog(req.user!.id, req.user!.email, "approve_payment", "payment_request", id, `Approved payment request ${id} for ${pr.amount} ${pr.currency}`);
+  res.json({ id, status: "approved", balance_after: newBalance });
+});
+
+// POST /v1/admin/payment-requests/:id/reject
+router.post("/admin/payment-requests/:id/reject", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
+  const id = req.params.id as string;
+  const { note } = req.body || {};
+  const pr = getPaymentRequestById(id);
+  if (!pr) {
+    res.status(404).json({ error: { message: "Payment request not found", code: "not_found" } });
+    return;
+  }
+  if (pr.status !== "pending") {
+    res.status(400).json({ error: { message: "Payment request already processed", code: "already_processed" } });
+    return;
+  }
+  updatePaymentRequest(id, {
+    status: "rejected",
+    admin_id: req.user!.id,
+    admin_email: req.user!.email,
+    admin_note: note || null,
+  });
+  createAuditLog(req.user!.id, req.user!.email, "reject_payment", "payment_request", id, `Rejected payment request ${id}`);
+  res.json({ id, status: "rejected" });
 });
 
 export default router;

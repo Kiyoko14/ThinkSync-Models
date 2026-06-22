@@ -31,6 +31,7 @@ const AdminTransactions = lazy(() => import("@/pages/admin/transactions"));
 const AdminPackages = lazy(() => import("@/pages/admin/packages"));
 const AdminPromocodes = lazy(() => import("@/pages/admin/promocodes"));
 const AdminLogs = lazy(() => import("@/pages/admin/logs"));
+const AdminPaymentRequests = lazy(() => import("@/pages/admin/payment-requests"));
 
 const NotFound = lazy(() => import("@/pages/not-found"));
 
@@ -70,6 +71,7 @@ function Router() {
       <Route path="/admin/packages" component={() => <AdminLayout><AdminPackages /></AdminLayout>} />
       <Route path="/admin/promocodes" component={() => <AdminLayout><AdminPromocodes /></AdminLayout>} />
       <Route path="/admin/logs" component={() => <AdminLayout><AdminLogs /></AdminLayout>} />
+      <Route path="/admin/payment-requests" component={() => <AdminLayout><AdminPaymentRequests /></AdminLayout>} />
 
       {/* Not found */}
       <Route component={() => <PageShell><NotFound /></PageShell>} />
