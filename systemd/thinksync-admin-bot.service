@@ -1,0 +1,37 @@
+[Unit]
+Description=ThinkSync Admin Telegram Bot
+After=network.target thinksync-api.service
+Wants=thinksync-api.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/root/hermes-agent/ThinkSync-Models/artifacts/api-server
+
+# Environment
+Environment=NODE_ENV=production
+
+# Startup
+ExecStart=/usr/bin/node dist/bot/admin-bot.js
+Restart=on-failure
+RestartSec=5s
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/log
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=thinksync-admin-bot
+
+# Resources
+MemoryMax=256M
+MemoryHigh=192M
+
+[Install]
+WantedBy=multi-user.target

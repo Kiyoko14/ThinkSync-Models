@@ -12,70 +12,8 @@ import { createApiLog, listApiLogs } from "../services/api-log";
 import { createAuditLog, listAuditLogs } from "../services/audit-log";
 import { createPaymentRequest, listPaymentRequests, getPaymentRequestById, updatePaymentRequest } from "../services/payment-request";
 import { chargeUser, calculateCost } from "../services/billing";
-
-const router: IRouter = Router();
-
-// =============================================================================
-// SEED DATA
-// =============================================================================
-
-// Seed admin user
-async function seedData() {
-  const admin = createUser({
-    id: "admin-001",
-    email: "admin@thinksync.ai",
-    password_hash: await hashPassword("admin123"),
-    display_name: "Admin",
-    plan_tier: "enterprise",
-    role: "admin",
-    is_active: true,
-    total_spent: 0,
-    balance: 0,
-    rate_limit_rpm: 1000,
-    rate_limit_tpm: 100000,
-  });
-
-  const primaryAdmin = createUser({
-    id: "admin-002",
-    email: "jdusi908@gmail.com",
-    password_hash: await hashPassword("admin123"),
-    display_name: "Primary Admin",
-    plan_tier: "enterprise",
-    role: "admin",
-    is_active: true,
-    total_spent: 0,
-    balance: 0,
-    rate_limit_rpm: 1000,
-    rate_limit_tpm: 100000,
-  });
-
-  // Seed models
-  [
-    { id: "gpt-4o", slug: "gpt-4o", provider_model_id: "gpt-4o", provider_name: "OpenAI", display_name: "GPT-4o", description: "OpenAI's GPT-4o model", pricing_input_per_m: 2.5, pricing_output_per_m: 10.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 16384, rate_limit_rpm: 1000, rate_limit_tpm: 10000, sort_order: 1 },
-    { id: "gpt-4o-mini", slug: "gpt-4o-mini", provider_model_id: "gpt-4o-mini", provider_name: "OpenAI", display_name: "GPT-4o Mini", description: "OpenAI's GPT-4o-mini model", pricing_input_per_m: 0.15, pricing_output_per_m: 0.6, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 16384, rate_limit_rpm: 2000, rate_limit_tpm: 20000, sort_order: 2 },
-    { id: "gpt-4-turbo", slug: "gpt-4-turbo", provider_model_id: "gpt-4-turbo", provider_name: "OpenAI", display_name: "GPT-4 Turbo", description: "OpenAI's GPT-4 Turbo", pricing_input_per_m: 10.0, pricing_output_per_m: 30.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 128000, max_output_tokens: 4096, rate_limit_rpm: 500, rate_limit_tpm: 5000, sort_order: 3 },
-    { id: "deepseek-v3", slug: "deepseek-v3", provider_model_id: "deepseek-chat", provider_name: "DeepSeek", display_name: "DeepSeek V3", description: "DeepSeek V3 model", pricing_input_per_m: 0.07, pricing_output_per_m: 0.27, supports_streaming: true, supports_functions: false, is_active: true, context_window: 64000, max_output_tokens: 8192, rate_limit_rpm: 1000, rate_limit_tpm: 10000, sort_order: 4 },
-    { id: "deepseek-r1", slug: "deepseek-r1", provider_model_id: "deepseek-reasoner", provider_name: "DeepSeek", display_name: "DeepSeek R1", description: "DeepSeek R1 reasoning model", pricing_input_per_m: 0.55, pricing_output_per_m: 2.19, supports_streaming: true, supports_functions: false, is_active: true, context_window: 64000, max_output_tokens: 8192, rate_limit_rpm: 500, rate_limit_tpm: 5000, sort_order: 5 },
-    { id: "claude-3-5-sonnet", slug: "claude-3-5-sonnet", provider_model_id: "claude-3-5-sonnet-20241022", provider_name: "Anthropic", display_name: "Claude 3.5 Sonnet", description: "Anthropic's Claude 3.5 Sonnet", pricing_input_per_m: 3.0, pricing_output_per_m: 15.0, supports_streaming: true, supports_functions: true, is_active: true, context_window: 200000, max_output_tokens: 8192, rate_limit_rpm: 1000, rate_limit_tpm: 10000, sort_order: 6 },
-  ].forEach((m) => createModel(m as Parameters<typeof createModel>[0]));
-
-  // Seed packages
-  [
-    { id: "starter", name: "Starter", description: "500K tokens + 5% bonus", token_amount: 500000, bonus_tokens: 25000, price_usd_cents: 500, display_price: "$5.00", is_featured: false, sort_order: 1, status: "active" },
-    { id: "pro", name: "Pro", description: "2M tokens + 10% bonus", token_amount: 2000000, bonus_tokens: 200000, price_usd_cents: 1800, display_price: "$18.00", is_featured: true, sort_order: 2, status: "active" },
-    { id: "enterprise", name: "Enterprise", description: "10M tokens + 15% bonus", token_amount: 10000000, bonus_tokens: 1500000, price_usd_cents: 8000, display_price: "$80.00", is_featured: false, sort_order: 3, status: "active" },
-  ].forEach((p) => createPackage(p as Parameters<typeof createPackage>[0]));
-
-  // Seed transactions for admin
-  createTransaction({ id: "txn-1", profile_id: admin.id, amount: 100000, balance_after: 100000, transaction_type: "package_purchase", status: "completed", description: "Pro package purchased", reference_type: "package", reference_id: "pro" });
-  createTransaction({ id: "txn-2", profile_id: admin.id, amount: 50000, balance_after: 50000, transaction_type: "api_usage", status: "completed", description: "API usage deduction" });
-
-  // Seed API logs
-  createApiLog({ id: "log-1", profile_id: admin.id, model_slug: "gpt-4o", auth_method: "api_key", input_tokens: 500, output_tokens: 300, total_tokens: 800, estimated_cost: 0.0035, duration_ms: 1200, status: "success", status_code: 200, request_model: "gpt-4o", stream_enabled: false, ip_address: "192.168.1.1" });
-  createApiLog({ id: "log-2", profile_id: admin.id, model_slug: "deepseek-v3", auth_method: "api_key", input_tokens: 2000, output_tokens: 800, total_tokens: 2800, estimated_cost: 0.014, duration_ms: 3500, status: "success", status_code: 200, request_model: "deepseek-v3", stream_enabled: true, ip_address: "192.168.1.1" });
-}
-
-seedData();
+import { chatCompletions, extractUsage, streamChatCompletions, estimateTokens } from "../services/provider/siliconflow";
+import { chatAuthMiddleware, generateToken, verifyToken, type AuthenticatedRequest } from "../middlewares/auth-api-key";
 
 // =============================================================================
 // HELPERS
@@ -104,10 +42,470 @@ function toPublicProfile(user: ReturnType<typeof getUserById>) {
     display_name: user.display_name,
     plan_tier: user.plan_tier,
     is_active: user.is_active,
-    total_spent: user.total_spent,
-    created_at: user.created_at,
-  };
-}
+
+// =============================================================================
+// CHAT COMPLETIONS (Phase 5B.1 - AI Gateway Foundation)
+// =============================================================================
+
+/**
+ * POST /v1/chat/completions
+ * OpenAI-compatible chat endpoint using SiliconFlow
+ */
+router.post("/chat/completions", chatAuthMiddleware, async (req: AuthenticatedRequest, res) => {
+  const startTime = Date.now();
+
+  try {
+    // 1. Parse request
+    const { model, messages, temperature, top_p, max_tokens, stream } = req.body || {};
+
+    // 2. Validate required fields
+    if (!model) {
+      res.status(400).json({
+        error: {
+          message: "Missing required field: model",
+          type: "invalid_request_error",
+          code: "missing_model",
+        },
+      });
+      return;
+    }
+
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      res.status(400).json({
+        error: {
+          message: "Missing required field: messages",
+          type: "invalid_request_error",
+          code: "missing_messages",
+        },
+      });
+      return;
+    }
+
+    // 3. Get model from database
+    const { getModelBySlug } = await import("../services/model");
+    const modelData = await getModelBySlug(model);
+
+    if (!modelData) {
+      res.status(404).json({
+        error: {
+          message: `Model not found: ${model}`,
+          type: "invalid_request_error",
+          code: "model_not_found",
+        },
+      });
+      return;
+    }
+
+    // 4. Check model is active
+    if (!modelData.is_active) {
+      res.status(400).json({
+        error: {
+          message: `Model is inactive: ${model}`,
+          type: "invalid_request_error",
+          code: "model_inactive",
+        },
+      });
+      return;
+    }
+
+    // 5. Check model is visible (for non-admin users)
+    if (!modelData.is_visible && req.user?.role !== "admin") {
+      res.status(404).json({
+        error: {
+          message: `Model not found: ${model}`,
+          type: "invalid_request_error",
+          code: "model_not_found",
+        },
+      });
+      return;
+    }
+
+    // 5.5. Check user tier access to model (Phase 5C)
+    if (req.user) {
+      const { canUserAccessModel } = await import("../services/tier");
+      const tierCheck = await canUserAccessModel(req.user.id, modelData.id);
+      if (!tierCheck.allowed) {
+        res.status(403).json({
+          error: {
+            message: tierCheck.error || "Tier access denied",
+            type: "access_denied",
+            code: "tier_required",
+            current_tier: tierCheck.userTier?.display_name || 'free',
+          },
+        });
+        return;
+      }
+    }
+
+    // 6. Handle streaming or non-streaming
+    if (stream) {
+      // ===================== STREAMING MODE =====================
+      
+      // Check if model supports streaming (future: check model.supports_streaming)
+      if (!modelData.is_visible) {
+        res.status(400).json({
+          error: {
+            message: "Model is not available for streaming",
+            type: "invalid_request_error",
+            code: "model_not_available",
+          },
+        });
+        return;
+      }
+
+      // Set SSE headers
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+
+      // Send initial ping to establish connection
+      res.write(': connected\n\n');
+
+      let fullContent = '';
+      let promptTokens = 0;
+      let completionTokens = 0;
+      let messageId = `chatcmpl-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let startTimestamp = Math.floor(Date.now() / 1000);
+
+      try {
+        const streamResult = await streamChatCompletions(
+          model,
+          messages,
+          { temperature, top_p, max_tokens }
+        );
+
+        // Set up cleanup on client disconnect
+        const clientDisconnected = () => {
+          console.log(`[STREAM] Client disconnected for ${messageId}`);
+          streamResult.close?.();
+        };
+        req.on('close', clientDisconnected);
+
+        const reader = streamResult.stream.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) {
+            break;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6);
+              
+              if (data === '[DONE]') {
+                // Stream completed
+                continue;
+              }
+
+              try {
+                const chunk = JSON.parse(data);
+                
+                // Extract content delta from SiliconFlow format
+                const contentDelta = chunk.choices?.[0]?.delta?.content || '';
+                const finishReason = chunk.choices?.[0]?.finish_reason;
+
+                if (contentDelta) {
+                  fullContent += contentDelta;
+                  completionTokens += estimateTokens(contentDelta);
+
+                  // Send SSE chunk to client
+                  const sseChunk = {
+                    id: messageId,
+                    object: 'chat.completion.chunk',
+                    created: startTimestamp,
+                    model: model,
+                    choices: [
+                      {
+                        index: 0,
+                        delta: { content: contentDelta },
+                        finish_reason: finishReason || null,
+                      },
+                    ],
+                  };
+                  res.write(`data: ${JSON.stringify(sseChunk)}\n\n`);
+                }
+
+                // Get final usage from last chunk if available
+                if (chunk.usage) {
+                  promptTokens = chunk.usage.prompt_tokens || promptTokens;
+                  completionTokens = chunk.usage.completion_tokens || completionTokens;
+                }
+              } catch (e) {
+                // Skip invalid JSON chunks
+              }
+            }
+          }
+        }
+
+        // Clean up listener
+        req.removeListener('close', clientDisconnected);
+
+        // Send final chunk with usage
+        const usage = {
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          total_tokens: promptTokens + completionTokens,
+        };
+
+        const finalChunk = {
+          id: messageId,
+          object: 'chat.completion.chunk',
+          created: startTimestamp,
+          model: model,
+          choices: [
+            {
+              index: 0,
+              delta: {},
+              finish_reason: 'stop',
+            },
+          ],
+          usage: usage,
+        };
+        res.write(`data: ${JSON.stringify(finalChunk)}\n\n`);
+        res.write('data: [DONE]\n\n');
+
+        // ===================== BILLING AFTER STREAM =====================
+        const totalCost = Math.ceil(
+          (usage.prompt_tokens / 1000000) * (modelData.pricing_input_per_m || 2500) +
+          (usage.completion_tokens / 1000000) * (modelData.pricing_output_per_m || 10000)
+        );
+
+        // Only charge if there's actual usage
+        if (totalCost > 0) {
+          const { chargeUser } = await import("../services/billing");
+          const chargeResult = await chargeUser({
+            user_id: req.user!.id,
+            model_id: modelData.id,
+            input_tokens: usage.prompt_tokens,
+            output_tokens: usage.completion_tokens,
+            ip_address: req.ip || req.socket.remoteAddress,
+            user_agent: req.headers["user-agent"],
+          });
+
+          if (!chargeResult.success) {
+            console.error(`[STREAM] Billing failed after stream: ${chargeResult.error}`);
+          }
+
+          // Log API request
+          try {
+            const { createApiLog } = await import("../services/api-log");
+            await createApiLog({
+              profile_id: req.user!.id,
+              api_key_id: req.apiKeyId || undefined,
+              model_id: modelData.id,
+              model_slug: model,
+              prompt_tokens: usage.prompt_tokens,
+              completion_tokens: usage.completion_tokens,
+              total_tokens: usage.total_tokens,
+              input_cost: Math.ceil((usage.prompt_tokens / 1000000) * (modelData.pricing_input_per_m || 2500)),
+              output_cost: Math.ceil((usage.completion_tokens / 1000000) * (modelData.pricing_output_per_m || 10000)),
+              total_cost: totalCost,
+              status: chargeResult.success ? 'success' : 'billing_failed',
+              stream_enabled: true,
+              ip_address: req.ip || req.socket.remoteAddress,
+              user_agent: req.headers["user-agent"],
+            });
+          } catch (logError) {
+            console.error(`[STREAM] Failed to create API log:`, logError);
+          }
+        }
+
+        console.log(`[STREAM] Completed: ${messageId}, tokens: ${usage.prompt_tokens} in / ${usage.completion_tokens} out`);
+
+      } catch (streamError: any) {
+        console.error(`[STREAM] Error:`, streamError.message);
+        res.write(`data: ${JSON.stringify({ error: { message: streamError.message, type: 'streaming_error' } })}\n\n`);
+        res.write('data: [DONE]\n\n');
+      }
+
+      res.end();
+      return;
+    }
+
+    // 6.5. PRE-FLIGHT BALANCE CHECK (prevent negative balance race condition)
+    const { getUserById } = await import("../services/user");
+    const currentUser = await getUserById(req.user!.id);
+    if (!currentUser) {
+      res.status(401).json({ error: { message: "User not found", code: "user_not_found" } });
+      return;
+    }
+
+    const sfResponse = await chatCompletions(
+      model,
+      messages,
+      false,
+      { temperature, top_p, max_tokens }
+    );
+
+    // 7. Build prompt text for usage estimation fallback
+    const promptText = messages.map(m => m.content).join('\n');
+    
+    // 8. Extract usage from SiliconFlow response (with fallback estimation)
+    const completionText = sfResponse.choices?.[0]?.message?.content || '';
+    const usage = extractUsage(sfResponse, promptText, completionText);
+
+    // 8.5. Log estimation events for auditing
+    if (usage.source === 'estimated') {
+      console.warn(`[USAGE-ESTIMATED] Model: ${model}, Prompt tokens: ${usage.prompt_tokens}, Completion tokens: ${usage.completion_tokens}`);
+    }
+
+    // 9. Charge user for API usage (Phase 5B.2)
+    const { chargeUser } = await import("../services/billing");
+    const chargeResult = await chargeUser({
+      user_id: req.user!.id,
+      model_id: modelData.id,
+      input_tokens: usage.prompt_tokens,
+      output_tokens: usage.completion_tokens,
+      ip_address: req.ip || req.socket.remoteAddress,
+      user_agent: req.headers["user-agent"],
+    });
+
+    // Handle insufficient balance
+    if (!chargeResult.success) {
+      if (chargeResult.error === 'insufficient_balance') {
+        res.status(402).json({
+          error: {
+            message: `Insufficient balance. Required: ${chargeResult.cost}, Available: ${chargeResult.balance_before}`,
+            type: "insufficient_balance",
+            code: "insufficient_balance",
+          },
+        });
+        return;
+      }
+      // Other billing errors - log but continue (user already got response)
+      console.error("Billing error:", chargeResult.error);
+    }
+
+    // 9. Create API log entry with actual cost
+    const duration = Date.now() - startTime;
+    const { createApiLog } = await import("../services/api-log");
+    const inputCost = Math.ceil((usage.prompt_tokens / 1000000) * (modelData.pricing_input_per_m || 2500));
+    const outputCost = Math.ceil((usage.completion_tokens / 1000000) * (modelData.pricing_output_per_m || 10000));
+    const totalCost = chargeResult.success ? chargeResult.cost : (inputCost + outputCost);
+    
+    // Log creation with error handling - don't fail response if logging fails
+    try {
+      await createApiLog({
+        profile_id: req.user!.id,
+        api_key_id: req.apiKeyId || undefined,
+        model_id: modelData.id,
+        model_slug: model,
+        prompt_tokens: usage.prompt_tokens,
+        completion_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens,
+        input_cost: inputCost,
+        output_cost: outputCost,
+        total_cost: totalCost,
+        status: "success",
+        duration_ms: duration,
+        request_model: model,
+        stream_enabled: false,
+        ip_address: req.ip || req.socket.remoteAddress,
+        user_agent: req.headers["user-agent"],
+      });
+    } catch (logError) {
+      // Log failure - balance already deducted, but log is missing
+      console.error("CRITICAL: Failed to create API log after successful charge:", logError);
+    }
+
+    // 10. Return OpenAI-compatible response
+    res.json({
+      id: sfResponse.id,
+      object: "chat.completion",
+      created: sfResponse.created,
+      model: model, // Return user-facing model name, not provider_model_id
+      choices: sfResponse.choices.map((choice: any) => ({
+        index: choice.index,
+        message: {
+          role: choice.message.role,
+          content: choice.message.content,
+        },
+        finish_reason: choice.finish_reason,
+      })),
+      usage: {
+        prompt_tokens: usage.prompt_tokens,
+        completion_tokens: usage.completion_tokens,
+        total_tokens: usage.total_tokens,
+      },
+    });
+  } catch (error: any) {
+    // Error handling
+    const duration = Date.now() - startTime;
+
+    // Log error
+    try {
+      const { createApiLog } = await import("../services/api-log");
+      await createApiLog({
+        profile_id: req.user!.id,
+        api_key_id: req.apiKeyId || undefined,
+        model_slug: req.body?.model || "unknown",
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
+        total_cost: 0,
+        status: "error",
+        error_message: error.message,
+        duration_ms: duration,
+        request_model: req.body?.model,
+        stream_enabled: false,
+        ip_address: req.ip || req.socket.remoteAddress,
+        user_agent: req.headers["user-agent"],
+      });
+    } catch (logError) {
+      console.error("Failed to create error log:", logError);
+    }
+
+    // Determine error type
+    if (error.message?.includes("not found")) {
+      res.status(404).json({
+        error: {
+          message: error.message,
+          type: "invalid_request_error",
+          code: "model_not_found",
+        },
+      });
+    } else if (error.message?.includes("inactive")) {
+      res.status(400).json({
+        error: {
+          message: error.message,
+          type: "invalid_request_error",
+          code: "model_inactive",
+        },
+      });
+    } else if (error.message?.includes("not configured")) {
+      res.status(503).json({
+        error: {
+          message: "AI provider not configured",
+          type: "server_error",
+          code: "provider_not_configured",
+        },
+      });
+    } else {
+      res.status(500).json({
+        error: {
+          message: error.message || "Internal server error",
+          type: "server_error",
+          code: "internal_error",
+        },
+      });
+    }
+  }
+});
+
+// =============================================================================
+// EXISTING ROUTES BELOW
+// =============================================================================
 
 // =============================================================================
 // PUBLIC ENDPOINTS
@@ -306,8 +704,25 @@ router.get("/user/tokens", authMiddleware, (req: AuthenticatedRequest, res) => {
 });
 
 // POST /v1/user/tokens/generate — generate API key
-router.post("/user/tokens/generate", authMiddleware, (req: AuthenticatedRequest, res) => {
+router.post("/user/tokens/generate", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const { name, expires_in_days } = req.body || {};
+  
+  // Check tier API key limit (Phase 5C)
+  const { canUserCreateApiKey } = await import("../services/tier");
+  const keyCheck = await canUserCreateApiKey(req.user!.id);
+  if (!keyCheck.allowed) {
+    res.status(403).json({
+      error: {
+        message: keyCheck.error || "API key limit reached",
+        type: "access_denied",
+        code: "api_key_limit_reached",
+        current: keyCheck.current,
+        max: keyCheck.max,
+      },
+    });
+    return;
+  }
+  
   const rawKey = generateApiKey();
   const key = createApiKey({
     profile_id: req.user!.id,
@@ -668,13 +1083,13 @@ router.get("/admin/audit-log", authMiddleware, requireAdmin, (req: Authenticated
 // =============================================================================
 
 // POST /v1/billing/charge — charge user for API usage
-router.post("/billing/charge", authMiddleware, (req: AuthenticatedRequest, res) => {
+router.post("/billing/charge", authMiddleware, async (req: AuthenticatedRequest, res) => {
   const { model_id, input_tokens, output_tokens } = req.body || {};
   if (!model_id || typeof input_tokens !== "number" || typeof output_tokens !== "number") {
     res.status(400).json({ error: { message: "model_id, input_tokens, output_tokens required", code: "missing_fields" } });
     return;
   }
-  const result = chargeUser({
+  const result = await chargeUser({
     user_id: req.user!.id,
     model_id,
     input_tokens,
@@ -727,101 +1142,123 @@ router.get("/user/billing", authMiddleware, (req: AuthenticatedRequest, res) => 
 // =============================================================================
 // PAYMENT REQUESTS (User)
 // =============================================================================
+// PAYMENT REQUESTS (User)
+// =============================================================================
 
-// POST /v1/user/payment-requests
-router.post("/user/payment-requests", authMiddleware, (req: AuthenticatedRequest, res) => {
-  const { amount, currency, screenshot_url } = req.body || {};
-  if (!amount || typeof amount !== "number" || amount <= 0) {
-    res.status(400).json({ error: { message: "Amount must be a positive number", code: "invalid_amount" } });
-    return;
+// POST /v1/payments/request - Create payment request
+router.post("/payments/request", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { amount, currency, screenshot_url, source } = req.body || {};
+    
+    if (!amount || typeof amount !== "number" || amount <= 0) {
+      res.status(400).json({ error: { message: "Amount must be a positive number", code: "invalid_amount" } });
+      return;
+    }
+    
+    const { createPaymentRequest } = await import("../services/payment-request");
+    const payment = await createPaymentRequest({
+      user_id: req.user!.id,
+      amount,
+      currency: currency || "USD",
+      screenshot_url: screenshot_url || undefined,
+      source: source || 'frontend',
+      // Store user email for admin notification
+      user_email: req.user!.email,
+    });
+    
+    // Import admin bot notifier if available (async, don't wait)
+    import("../bot/admin-bot").then(({ notifyNewPaymentRequest }) => {
+      notifyNewPaymentRequest(payment, req.user!.email).catch(console.error);
+    }).catch(() => {}); // Silently ignore if bot not running
+    
+    res.status(201).json(payment);
+  } catch (error: any) {
+    console.error('[PAYMENT] Create error:', error);
+    res.status(500).json({ error: { message: error.message, code: "internal_error" } });
   }
-  const pr = createPaymentRequest({
-    user_id: req.user!.id,
-    amount,
-    currency: currency || "USD",
-    screenshot_url: screenshot_url || null,
-  });
-  res.status(201).json(pr);
 });
 
-// GET /v1/user/payment-requests
-router.get("/user/payment-requests", authMiddleware, (req: AuthenticatedRequest, res) => {
-  const reqs = listPaymentRequests({ user_id: req.user!.id });
-  res.json(reqs);
+// GET /v1/payments/my-requests - Get user's payment requests
+router.get("/payments/my-requests", authMiddleware, async (req: AuthenticatedRequest, res) => {
+  try {
+    const status = req.query.status as string;
+    const limit = parseInt(req.query.limit as string) || 20;
+    const offset = parseInt(req.query.offset as string) || 0;
+    
+    const { listPaymentRequestsForUser } = await import("../services/payment-request");
+    const payments = await listPaymentRequestsForUser(req.user!.id, { status, limit, offset });
+    
+    res.json({ data: payments, total: payments.length });
+  } catch (error: any) {
+    console.error('[PAYMENT] List error:', error);
+    res.status(500).json({ error: { message: error.message, code: "internal_error" } });
+  }
 });
 
 // =============================================================================
 // PAYMENT REQUESTS (Admin)
 // =============================================================================
 
-// GET /v1/admin/payment-requests
-router.get("/admin/payment-requests", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
-  const status = req.query.status as string;
-  const reqs = listPaymentRequests({ status: status || undefined });
-  res.json(reqs);
+// GET /v1/admin/payment-requests - List all payment requests (admin)
+router.get("/admin/payment-requests", authMiddleware, requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const status = req.query.status as string;
+    const userId = req.query.user_id as string;
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = parseInt(req.query.offset as string) || 0;
+    
+    const { listAllPaymentRequests } = await import("../services/payment-request");
+    const payments = await listAllPaymentRequests({ status, user_id: userId, limit, offset });
+    
+    res.json({ data: payments, total: payments.length });
+  } catch (error: any) {
+    console.error('[PAYMENT] Admin list error:', error);
+    res.status(500).json({ error: { message: error.message, code: "internal_error" } });
+  }
 });
 
-// POST /v1/admin/payment-requests/:id/approve
-router.post("/admin/payment-requests/:id/approve", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
-  const id = req.params.id as string;
-  const { note } = req.body || {};
-  const pr = getPaymentRequestById(id);
-  if (!pr) {
-    res.status(404).json({ error: { message: "Payment request not found", code: "not_found" } });
-    return;
+// POST /v1/admin/payment-requests/:id/approve - Approve payment
+router.post("/admin/payment-requests/:id/approve", authMiddleware, requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body || {};
+    
+    const { approvePaymentRequest } = await import("../services/payment-request");
+    const result = await approvePaymentRequest(id, req.user!.id, req.user!.email, note);
+    
+    if (!result.success) {
+      res.status(400).json({ error: { message: result.error, code: "approval_failed" } });
+      return;
+    }
+    
+    console.log(`[PAYMENT] Approved: ${id} by ${req.user!.email}`);
+    res.json({ success: true, payment: result.payment });
+  } catch (error: any) {
+    console.error('[PAYMENT] Approve error:', error);
+    res.status(500).json({ error: { message: error.message, code: "internal_error" } });
   }
-  if (pr.status !== "pending") {
-    res.status(400).json({ error: { message: "Payment request already processed", code: "already_processed" } });
-    return;
-  }
-  const user = getUserById(pr.user_id);
-  if (!user) {
-    res.status(404).json({ error: { message: "User not found", code: "user_not_found" } });
-    return;
-  }
-  const newBalance = user.balance + pr.amount;
-  updateUser(user.id, { balance: newBalance });
-  createTransaction({
-    profile_id: user.id,
-    amount: pr.amount,
-    balance_after: newBalance,
-    transaction_type: "payment_approved",
-    status: "completed",
-    description: `Payment request approved by ${req.user!.email}`,
-    reference_type: "payment_request",
-    reference_id: pr.id,
-  });
-  updatePaymentRequest(id, {
-    status: "approved",
-    admin_id: req.user!.id,
-    admin_email: req.user!.email,
-    admin_note: note || null,
-  });
-  createAuditLog(req.user!.id, req.user!.email, "approve_payment", "payment_request", id, `Approved payment request ${id} for ${pr.amount} ${pr.currency}`);
-  res.json({ id, status: "approved", balance_after: newBalance });
 });
 
-// POST /v1/admin/payment-requests/:id/reject
-router.post("/admin/payment-requests/:id/reject", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
-  const id = req.params.id as string;
-  const { note } = req.body || {};
-  const pr = getPaymentRequestById(id);
-  if (!pr) {
-    res.status(404).json({ error: { message: "Payment request not found", code: "not_found" } });
-    return;
+// POST /v1/admin/payment-requests/:id/reject - Reject payment
+router.post("/admin/payment-requests/:id/reject", authMiddleware, requireAdmin, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { note } = req.body || {};
+    
+    const { rejectPaymentRequest } = await import("../services/payment-request");
+    const result = await rejectPaymentRequest(id, req.user!.id, req.user!.email, note);
+    
+    if (!result.success) {
+      res.status(400).json({ error: { message: result.error, code: "rejection_failed" } });
+      return;
+    }
+    
+    console.log(`[PAYMENT] Rejected: ${id} by ${req.user!.email}`);
+    res.json({ success: true, payment: result.payment });
+  } catch (error: any) {
+    console.error('[PAYMENT] Reject error:', error);
+    res.status(500).json({ error: { message: error.message, code: "internal_error" } });
   }
-  if (pr.status !== "pending") {
-    res.status(400).json({ error: { message: "Payment request already processed", code: "already_processed" } });
-    return;
-  }
-  updatePaymentRequest(id, {
-    status: "rejected",
-    admin_id: req.user!.id,
-    admin_email: req.user!.email,
-    admin_note: note || null,
-  });
-  createAuditLog(req.user!.id, req.user!.email, "reject_payment", "payment_request", id, `Rejected payment request ${id}`);
-  res.json({ id, status: "rejected" });
 });
 
 export default router;
