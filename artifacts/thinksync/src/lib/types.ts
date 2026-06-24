@@ -11,10 +11,19 @@ export interface Profile {
 
 export interface ModelItem {
   id: string;
-  owned_by: string;
+  slug: string;
+  display_name: string;
+  description?: string | null;
+  // provider_name shown for UI reference only - NOT the internal provider_model_id
+  provider_name: string;
+  // NOTE: provider_model_id is backend-only and never exposed to frontend
   active: boolean;
   context_window: number;
   max_output_tokens: number;
+  rate_limit_rpm: number;
+  rate_limit_tpm: number;
+  supports_streaming: boolean;
+  supports_functions: boolean;
   pricing_input_per_m: number;
   pricing_output_per_m: number;
 }

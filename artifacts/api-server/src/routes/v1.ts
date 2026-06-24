@@ -519,10 +519,20 @@ router.get("/models", (_req, res) => {
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((m) => ({
       id: m.id,
-      owned_by: m.provider_name,
+      slug: m.slug,
+      display_name: m.display_name,
+      description: m.description,
+      // provider_name shown for user reference only
+      provider_name: m.provider_name,
+      // NOTE: provider_model_id is NEVER exposed to public API
+      // It is an internal mapping field for backend provider requests
       active: m.is_active,
       context_window: m.context_window,
       max_output_tokens: m.max_output_tokens,
+      rate_limit_rpm: m.rate_limit_rpm,
+      rate_limit_tpm: m.rate_limit_tpm,
+      supports_streaming: m.supports_streaming,
+      supports_functions: m.supports_functions,
       pricing_input_per_m: m.pricing_input_per_m,
       pricing_output_per_m: m.pricing_output_per_m,
     }));

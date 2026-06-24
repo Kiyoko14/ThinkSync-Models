@@ -15,6 +15,8 @@ const PricingPage = lazy(() => import("@/pages/pricing"));
 const DocsPage = lazy(() => import("@/pages/docs"));
 const LoginPage = lazy(() => import("@/pages/login"));
 const RegisterPage = lazy(() => import("@/pages/register"));
+const TermsPage = lazy(() => import("@/pages/terms"));
+const PrivacyPage = lazy(() => import("@/pages/privacy"));
 
 const DashboardLayout = lazy(() => import("@/pages/dashboard/layout"));
 const DashboardOverview = lazy(() => import("@/pages/dashboard/overview"));
@@ -48,11 +50,13 @@ function PageShell({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
-      {/* Public */}
-      <Route path="/" component={() => <PageShell><HomePage /></PageShell>} />
+      {/* Public - Home page has its own layout */}
+      <Route path="/" component={HomePage} />
       <Route path="/models" component={() => <PageShell><ModelsPage /></PageShell>} />
       <Route path="/pricing" component={() => <PageShell><PricingPage /></PageShell>} />
       <Route path="/docs" component={() => <PageShell><DocsPage /></PageShell>} />
+      <Route path="/terms" component={() => <PageShell><TermsPage /></PageShell>} />
+      <Route path="/privacy" component={() => <PageShell><PrivacyPage /></PageShell>} />
       <Route path="/login" component={() => <PageShell><LoginPage /></PageShell>} />
       <Route path="/register" component={() => <PageShell><RegisterPage /></PageShell>} />
 
