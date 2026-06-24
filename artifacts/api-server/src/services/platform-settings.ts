@@ -1,4 +1,5 @@
 // Platform Settings Service - Phase 5C.5
+// Updated: Phase 5C.8 - Added getPublicSettings()
 import { randomUUID } from 'crypto';
 import db from '../db';
 
@@ -10,6 +11,47 @@ export interface PlatformSetting {
   data_type: string;
   updated_by: string | null;
   updated_at: string;
+}
+
+// Whitelist of public settings that can be exposed without authentication
+const PUBLIC_SETTINGS_KEYS = [
+  'payment_card_number',
+  'payment_card_holder', 
+  'payment_card_phone',
+  'support_email',
+  'support_telegram',
+  'frontend_url',
+  'api_url',
+  'maintenance_mode',
+  'registration_enabled',
+  'deposits_enabled',
+  'user_bot_enabled',
+  'default_currency',
+];
+
+/**
+ * Get public platform settings (no auth required)
+ * Exposes only safe, non-sensitive settings
+ */
+export async function getPublicSettings(): Promise<Record<string, any>> {
+  const settings = await getSettings(PUBLIC_SETTINGS_KEYS);
+  
+  const result: Record<string, any> = {};
+  
+  for (const setting of settings) {
+    if (setting.value === null) continue;
+    
+    // Convert based on data_type
+    if (setting.data_type === 'boolean') {
+      result[setting.key] = setting.value === 'true';
+    } else if (setting.data_type === 'number') {
+      result[setting.key] = parseFloat(setting.value);
+    } else {
+      result[setting.key] = setting.value;
+    }
+  }
+  
+  return result;
 }
 
 /**

@@ -11,6 +11,7 @@ import { createPromocode, listPromocodes, updatePromocode } from "../services/pr
 import { createApiLog, listApiLogs } from "../services/api-log";
 import { createAuditLog, listAuditLogs } from "../services/audit-log";
 import { createPaymentRequest, listPaymentRequests, getPaymentRequestById, updatePaymentRequest } from "../services/payment-request";
+import { getPublicSettings } from "../services/platform-settings";
 import { chargeUser, calculateCost } from "../services/billing";
 import { chatCompletions, extractUsage, streamChatCompletions, estimateTokens } from "../services/provider/siliconflow";
 import { chatAuthMiddleware, generateToken, verifyToken, type AuthenticatedRequest } from "../middlewares/auth-api-key";
@@ -526,6 +527,26 @@ router.get("/models", (_req, res) => {
       pricing_output_per_m: m.pricing_output_per_m,
     }));
   res.json({ object: "list", data: activeModels });
+});
+
+// =============================================================================
+// PLATFORM SETTINGS (PUBLIC - Phase 5C.8)
+// =============================================================================
+
+// GET /v1/platform/settings/public
+router.get("/platform/settings/public", async (_req, res) => {
+  try {
+    const settings = await getPublicSettings();
+    res.json({ settings });
+  } catch (error: any) {
+    console.error('[PLATFORM] Failed to fetch public settings:', error);
+    res.status(500).json({ 
+      error: { 
+        message: 'Failed to load platform settings', 
+        code: 'settings_unavailable' 
+      } 
+    });
+  }
 });
 
 // GET /v1/models/:id
