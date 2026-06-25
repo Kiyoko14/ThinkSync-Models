@@ -21,7 +21,7 @@ function getApiBaseUrl(): string {
   }
 
   // Production
-  return API_BASE_URL + "/api";
+  return API_BASE_URL;
 }
 
 export class ApiClientError extends Error {

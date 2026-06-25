@@ -7,7 +7,6 @@ import { createUser, getUserByEmail, getUserById, updateUser, listUsers } from "
 import { createApiKey, getApiKeyById, listApiKeysForUser, revokeApiKey, rotateApiKey } from "../services/api-key";
 import { createTransaction, listTransactions } from "../services/transaction";
 import { createModel, listModels, updateModel, getModelBySlug } from "../services/model";
-import { createPackage, listPackages, updatePackage } from "../services/package";
 import { createPromocode, listPromocodes, updatePromocode } from "../services/promocode";
 import { createApiLog, listApiLogs } from "../services/api-log";
 import { createAuditLog, listAuditLogs } from "../services/audit-log";
@@ -583,25 +582,6 @@ router.get("/models/:id", (req, res) => {
   });
 });
 
-// GET /v1/packages
-router.get("/packages", (_req, res) => {
-  const activePackages = listPackages()
-    .filter((p) => p.status === "active")
-    .sort((a, b) => a.sort_order - b.sort_order)
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      token_amount: p.token_amount,
-      bonus_tokens: p.bonus_tokens,
-      price_usd_cents: p.price_usd_cents,
-      display_price: p.display_price,
-      is_featured: p.is_featured,
-      sort_order: p.sort_order,
-      status: p.status,
-    }));
-  res.json({ object: "list", data: activePackages });
-});
 
 // POST /v1/auth/login
 router.post("/auth/login", async (req, res) => {
@@ -917,35 +897,7 @@ router.get("/admin/transactions", authMiddleware, requireAdmin, (req: Authentica
   res.json({ data: paginate(all, page, pageSize), meta: paginateMeta(all.length, page, pageSize) });
 });
 
-// GET /v1/admin/packages
-router.get("/admin/packages", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const pageSize = parseInt(req.query.page_size as string) || 20;
-  const search = (req.query.search as string)?.toLowerCase() || "";
-  const status = req.query.status as string;
-  let all = listPackages();
-  if (search) all = all.filter((p) => p.name.toLowerCase().includes(search));
-  if (status && status !== "all") all = all.filter((p) => p.status === status);
-  res.json({ data: paginate(all, page, pageSize), meta: paginateMeta(all.length, page, pageSize) });
-});
 
-// POST /v1/admin/packages
-router.post("/admin/packages", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
-  const payload = req.body;
-  const pkg = createPackage({
-    id: payload.id,
-    name: payload.name || "",
-    description: payload.description,
-    token_amount: payload.token_amount || 0,
-    bonus_tokens: payload.bonus_tokens || 0,
-    price_usd_cents: payload.price_usd_cents || 0,
-    display_price: payload.display_price || "$0.00",
-    is_featured: payload.is_featured ?? false,
-    sort_order: payload.sort_order || 0,
-    status: payload.status || "active",
-  });
-  res.json(pkg);
-});
 
 // PATCH /v1/admin/packages/:id
 router.patch("/admin/packages/:id", authMiddleware, requireAdmin, (req: AuthenticatedRequest, res) => {
