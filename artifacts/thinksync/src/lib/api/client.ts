@@ -72,14 +72,14 @@ export class ApiClient {
   }
 
   async login(email: string, password: string): Promise<{ token: string; profile: Profile }> {
-    return this.request("/auth/login", {
+    return this.request("/v1/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });
   }
 
   async register(email: string, password: string, displayName?: string): Promise<{ token: string; profile: Profile }> {
-    return this.request("/auth/register", {
+    return this.request("/v1/auth/register", {
       method: "POST",
       body: JSON.stringify({ email, password, display_name: displayName }),
     });
@@ -90,12 +90,12 @@ export class ApiClient {
   }
 
   async listModels(): Promise<ModelItem[]> {
-    const data = await this.request<ModelListResponse>("/models");
+    const data = await this.request<ModelListResponse>("/v1/models");
     return data.data;
   }
 
   async getModel(id: string): Promise<ModelItem> {
-    return this.request<ModelItem>(`/models/${id}`);
+    return this.request<ModelItem>(`/v1/models/${id}`);
   }
 
   // Packages endpoints removed — ThinkSync is usage-based
@@ -105,73 +105,73 @@ export class ApiClient {
   // }
 
   async getProfile(token: string): Promise<Profile> {
-    return this.request<Profile>("/user/profile", undefined, token);
+    return this.request<Profile>("/v1/user/profile", undefined, token);
   }
 
   async getStats(token: string): Promise<UserStats> {
-    return this.request<UserStats>("/user/stats", undefined, token);
+    return this.request<UserStats>("/v1/user/stats", undefined, token);
   }
 
   async getBalance(token: string): Promise<BalanceResponse> {
-    return this.request<BalanceResponse>("/user/balance", undefined, token);
+    return this.request<BalanceResponse>("/v1/user/balance", undefined, token);
   }
 
   async getUsage(token: string): Promise<UsageExtendedResponse> {
-    return this.request<UsageExtendedResponse>("/user/usage", undefined, token);
+    return this.request<UsageExtendedResponse>("/v1/user/usage", undefined, token);
   }
 
   async getTransactions(token: string): Promise<TransactionItem[]> {
-    return this.request<TransactionItem[]>("/user/transactions", undefined, token);
+    return this.request<TransactionItem[]>("/v1/user/transactions", undefined, token);
   }
 
   async getApiKeys(token: string): Promise<ApiKeyItem[]> {
-    return this.request<ApiKeyItem[]>("/user/tokens", undefined, token);
+    return this.request<ApiKeyItem[]>("/v1/user/tokens", undefined, token);
   }
 
   async generateApiKey(token: string, name: string, expiresInDays?: number): Promise<ApiKeyCreateResponse> {
-    return this.request<ApiKeyCreateResponse>("/user/tokens/generate", {
+    return this.request<ApiKeyCreateResponse>("/v1/user/tokens/generate", {
       method: "POST",
       body: JSON.stringify({ name, expires_in_days: expiresInDays ?? null }),
     }, token);
   }
 
   async revokeApiKey(token: string, keyId: string): Promise<{ id: string; status: string }> {
-    return this.request<{ id: string; status: string }>(`/user/tokens/${keyId}/revoke`, { method: "POST" }, token);
+    return this.request<{ id: string; status: string }>(`/v1/user/tokens/${keyId}/revoke`, { method: "POST" }, token);
   }
 
   async rotateApiKey(token: string, keyId: string): Promise<ApiKeyCreateResponse> {
-    return this.request<ApiKeyCreateResponse>(`/user/tokens/${keyId}/rotate`, { method: "POST" }, token);
+    return this.request<ApiKeyCreateResponse>(`/v1/user/tokens/${keyId}/rotate`, { method: "POST" }, token);
   }
 
   async getAdminAnalytics(token: string): Promise<AdminAnalytics> {
-    return this.request<AdminAnalytics>("/admin/analytics", undefined, token);
+    return this.request<AdminAnalytics>("/v1/admin/analytics", undefined, token);
   }
 
   async listAdminModels(token: string, params: { page: number; pageSize: number; search?: string; isActive?: string }): Promise<Paginated<AdminModel>> {
     const query = buildQuery({ page: params.page, page_size: params.pageSize, search: params.search, is_active: params.isActive === "all" ? undefined : params.isActive });
-    return this.request<Paginated<AdminModel>>(`/admin/models${query}`, undefined, token);
+    return this.request<Paginated<AdminModel>>(`/v1/admin/models${query}`, undefined, token);
   }
 
   async createAdminModel(token: string, payload: Omit<AdminModel, "id" | "created_at" | "updated_at">): Promise<AdminModel> {
-    return this.request<AdminModel>("/admin/models", { method: "POST", body: JSON.stringify(payload) }, token);
+    return this.request<AdminModel>("/v1/admin/models", { method: "POST", body: JSON.stringify(payload) }, token);
   }
 
   async updateAdminModel(token: string, id: string, payload: Partial<AdminModel>): Promise<AdminModel> {
-    return this.request<AdminModel>(`/admin/models/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+    return this.request<AdminModel>(`/v1/admin/models/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
   }
 
   async listAdminUsers(token: string, params: { page: number; pageSize: number; search?: string; planTier?: string; isActive?: string }): Promise<Paginated<AdminUser>> {
     const query = buildQuery({ page: params.page, page_size: params.pageSize, search: params.search, plan_tier: params.planTier === "all" ? undefined : params.planTier, is_active: params.isActive === "all" ? undefined : params.isActive });
-    return this.request<Paginated<AdminUser>>(`/admin/users${query}`, undefined, token);
+    return this.request<Paginated<AdminUser>>(`/v1/admin/users${query}`, undefined, token);
   }
 
   async updateAdminUser(token: string, id: string, payload: Partial<AdminUser>): Promise<AdminUser> {
-    return this.request<AdminUser>(`/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+    return this.request<AdminUser>(`/v1/admin/users/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
   }
 
   async listAdminTransactions(token: string, params: { page: number; pageSize: number; profileId?: string; transactionType?: string; status?: string }): Promise<Paginated<AdminTransaction>> {
     const query = buildQuery({ page: params.page, page_size: params.pageSize, profile_id: params.profileId, transaction_type: params.transactionType, status: params.status });
-    return this.request<Paginated<AdminTransaction>>(`/admin/transactions${query}`, undefined, token);
+    return this.request<Paginated<AdminTransaction>>(`/v1/admin/transactions${query}`, undefined, token);
   }
 
   // Packages endpoints removed — ThinkSync is usage-based
@@ -181,24 +181,24 @@ export class ApiClient {
 
   async listAdminPromocodes(token: string, params: { page: number; pageSize: number; search?: string; isActive?: string }): Promise<Paginated<AdminPromocode>> {
     const query = buildQuery({ page: params.page, page_size: params.pageSize, search: params.search, is_active: params.isActive === "all" ? undefined : params.isActive });
-    return this.request<Paginated<AdminPromocode>>(`/admin/promocodes${query}`, undefined, token);
+    return this.request<Paginated<AdminPromocode>>(`/v1/admin/promocodes${query}`, undefined, token);
   }
 
   async createAdminPromocode(token: string, payload: Omit<AdminPromocode, "id" | "current_uses" | "created_at" | "updated_at">): Promise<AdminPromocode> {
-    return this.request<AdminPromocode>("/admin/promocodes", { method: "POST", body: JSON.stringify(payload) }, token);
+    return this.request<AdminPromocode>("/v1/admin/promocodes", { method: "POST", body: JSON.stringify(payload) }, token);
   }
 
   async updateAdminPromocode(token: string, id: string, payload: Partial<AdminPromocode>): Promise<AdminPromocode> {
-    return this.request<AdminPromocode>(`/admin/promocodes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
+    return this.request<AdminPromocode>(`/v1/admin/promocodes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
   }
 
   async listAdminLogs(token: string, params: { page: number; pageSize: number; profileId?: string; modelSlug?: string; status?: string; search?: string }): Promise<Paginated<AdminApiLog>> {
     const query = buildQuery({ page: params.page, page_size: params.pageSize, profile_id: params.profileId, model_slug: params.modelSlug, status: params.status, search: params.search });
-    return this.request<Paginated<AdminApiLog>>(`/admin/logs${query}`, undefined, token);
+    return this.request<Paginated<AdminApiLog>>(`/v1/admin/logs${query}`, undefined, token);
   }
 
   async getBilling(token: string): Promise<BillingResponse> {
-    return this.request<BillingResponse>("/user/billing", undefined, token);
+    return this.request<BillingResponse>("/v1/user/billing", undefined, token);
   }
 
   async getPaymentRequests(token: string): Promise<PaymentRequestItem[]> {
@@ -206,19 +206,19 @@ export class ApiClient {
   }
 
   async createPaymentRequest(token: string, payload: { amount: number; currency: string; screenshot_url?: string }): Promise<PaymentRequestItem> {
-    return this.request<PaymentRequestItem>("/user/payment-requests", { method: "POST", body: JSON.stringify(payload) }, token);
+    return this.request<PaymentRequestItem>("/v1/user/payment-requests", { method: "POST", body: JSON.stringify(payload) }, token);
   }
 
   async listAdminPaymentRequests(token: string, status?: string): Promise<PaymentRequestItem[]> {
     const query = buildQuery({ status });
-    return this.request<PaymentRequestItem[]>(`/admin/payment-requests${query}`, undefined, token);
+    return this.request<PaymentRequestItem[]>(`/v1/admin/payment-requests${query}`, undefined, token);
   }
 
   async approvePaymentRequest(token: string, id: string, note?: string): Promise<{ id: string; status: string; balance_after: number }> {
-    return this.request<{ id: string; status: string; balance_after: number }>(`/admin/payment-requests/${id}/approve`, { method: "POST", body: JSON.stringify({ note }) }, token);
+    return this.request<{ id: string; status: string; balance_after: number }>(`/v1/admin/payment-requests/${id}/approve`, { method: "POST", body: JSON.stringify({ note }) }, token);
   }
 
   async rejectPaymentRequest(token: string, id: string, note?: string): Promise<{ id: string; status: string }> {
-    return this.request<{ id: string; status: string }>(`/admin/payment-requests/${id}/reject`, { method: "POST", body: JSON.stringify({ note }) }, token);
+    return this.request<{ id: string; status: string }>(`/v1/admin/payment-requests/${id}/reject`, { method: "POST", body: JSON.stringify({ note }) }, token);
   }
 }
