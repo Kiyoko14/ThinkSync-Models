@@ -54,14 +54,14 @@ function isDbRetryable(error: any): boolean {
   return true; // Default to retry for unknown errors
 }
 
-// Simple query helper with retry
-export async function query<T = any>(text: string, params?: any[]): Promise<{ rows: T[] }> {
+// Query result includes rowCount for INSERT/UPDATE/DELETE RETURNING
+export async function query<T = any>(text: string, params?: any[]): Promise<{ rows: T[]; rowCount: number }> {
   let lastError: Error;
   
   for (let attempt = 1; attempt <= DB_MAX_RETRIES; attempt++) {
     try {
       const result = await pool.query(text, params);
-      return { rows: result.rows };
+      return { rows: result.rows, rowCount: result.rowCount ?? result.rows.length };
     } catch (error) {
       lastError = error as Error;
       
@@ -80,15 +80,31 @@ export async function query<T = any>(text: string, params?: any[]): Promise<{ ro
   throw lastError!;
 }
 
-// Get single row
+// Get single row (alias: queryRow)
 export async function queryOne<T = any>(text: string, params?: any[]): Promise<T | null> {
   const result = await query<T>(text, params);
   return result.rows[0] || null;
 }
 
-// Get client for transactions
-export async function getClient(): Promise<pg.PoolClient> {
+// Alias for queryOne - used by services
+export async function queryRow<T = any>(text: string, params?: any[]): Promise<T | null> {
+  return queryOne<T>(text, params);
+}
+
+// Alias for query - used by services
+export async function queryRows<T = any>(text: string, params?: any[]): Promise<T[]> {
+  const result = await query<T>(text, params);
+  return result.rows;
+}
+
+// Get client for transactions (alias: connect)
+export async function getClient(): Promise<any> {
   return pool.connect();
+}
+
+// Alias for getClient - used by services
+export async function connect(): Promise<any> {
+  return getClient();
 }
 
 // Health check
@@ -106,7 +122,10 @@ export async function healthCheck(): Promise<boolean> {
 const db = {
   query,
   queryOne,
+  queryRow,
+  queryRows,
   getClient,
+  connect,
   healthCheck,
   pool,
 };

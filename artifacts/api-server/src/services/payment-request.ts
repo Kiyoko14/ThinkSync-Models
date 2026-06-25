@@ -432,7 +432,7 @@ export async function rejectPaymentRequest(
       status: 'rejected',
       reviewed_by: adminId,
       reviewed_at: now,
-      rejection_reason: rejectionReason || null,
+      rejection_reason: rejectionReason || undefined,
     });
     
     // Step 3: Create audit log

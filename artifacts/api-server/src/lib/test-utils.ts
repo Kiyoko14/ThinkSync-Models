@@ -2,7 +2,6 @@ import { createUser, clearUsers } from "../services/user";
 import { createApiKey, clearApiKeys } from "../services/api-key";
 import { clearTransactions } from "../services/transaction";
 import { clearAuditLogs } from "../services/audit-log";
-import { clearPaymentRequests } from "../services/payment-request";
 import { clearApiLogs } from "../services/api-log";
 // clearModels intentionally omitted: models are seeded at module load time
 import { hashPassword } from "./password";
@@ -56,6 +55,5 @@ export function cleanup(): void {
   clearApiKeys();
   clearTransactions();
   clearAuditLogs();
-  clearPaymentRequests();
   clearApiLogs();
 }

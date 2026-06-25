@@ -2,7 +2,7 @@
 // Phase 5B.1 - AI Gateway Foundation
 
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 import { hashApiKey } from "../lib/api-key";
 import { getApiKeyByHash } from "../services/api-key";
 import { getUserById } from "../services/user";

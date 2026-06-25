@@ -3,8 +3,8 @@
 
 import db from '../db';
 import { getUserById, updateUser } from './user';
-import { createTransaction } from './transaction';
-import { getPromocodeByCode } from './promocode';
+import { createTransaction, listTransactions } from './transaction';
+import { getPromocodeByCode, incrementUsedCount } from './promocode';
 
 export interface BillingResult {
   success: boolean;
@@ -237,7 +237,7 @@ export async function getBillingSummary(profileId: string): Promise<{
   }
   
   // Get transaction stats
-  const transactions = await listTransactionsForUser(profileId);
+  const transactions = await listTransactions({ profile_id: profileId });
   
   const totalSpent = transactions
     .filter(t => t.amount < 0 && t.status === 'completed')
@@ -400,14 +400,6 @@ export async function chargeUser(params: {
   }
 }
 
-export {
-  deductBalance,
-  addBalance,
-  calculateCost,
-  applyPromocodeDiscount,
-  getBillingSummary,
-  chargeUser,
-};
 
 export default {
   deductBalance,

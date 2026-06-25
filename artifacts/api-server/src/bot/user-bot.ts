@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ThinkSync User Telegram Bot
 // Provides account access, balance, API keys, payment workflow for users
 

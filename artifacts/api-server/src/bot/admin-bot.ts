@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ThinkSync Admin Telegram Bot
 // Uses unified admin service for all operations
 

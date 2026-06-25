@@ -321,7 +321,7 @@ export async function seedPrimaryAdmin(): Promise<void> {
   // Check if already exists
   const existing = primaryTelegramId 
     ? await getAdminByTelegramId(parseInt(primaryTelegramId))
-    : await getAdminByEmail(primaryEmail);
+    : primaryEmail ? await getAdminByEmail(primaryEmail) : null;
   
   if (existing) {
     // Update to owner if not already

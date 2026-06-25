@@ -1,7 +1,5 @@
 // SiliconFlow Provider - Phase 5B
 // Real AI gateway using SiliconFlow API
-
-import fetch from 'node-fetch';
 import { getModelBySlug } from '../model';
 
 // =============================================================================
@@ -144,7 +142,7 @@ export async function chatCompletions(
     if (stream) {
       return response.body as ReadableStream;
     } else {
-      const data: SiliconFlowChatResponse = await response.json();
+      const data = await response.json() as SiliconFlowChatResponse;
       return data;
     }
   };
@@ -265,34 +263,6 @@ export async function streamChatCompletions(
     },
   };
 }
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify(requestBody),
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`SiliconFlow API error: ${response.status} ${errorText}`);
-  }
-  
-  // 4. Stream yoki oddiy response
-  if (stream) {
-    // Streaming: Response body ni ReadableStream qilib qaytarish
-    return response.body as ReadableStream;
-  } else {
-    // Non-streaming: JSON response
-    const data: SiliconFlowChatResponse = await response.json();
-    return data;
-  }
-}
-
-/**
- * Tokens ni hisoblash (taxminiy)
- * Haqiqiy hisoblash SiliconFlow response dagi `usage` orqali bo'ladi
- */
 export function estimateCost(
   modelSlug: string,
   inputTokens: number,
@@ -386,12 +356,6 @@ export function extractUsage(
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 
-export {
-  chatCompletions,
-  estimateCost,
-  parseStreamChunk,
-  extractUsage,
-};
 
 export default {
   chatCompletions,
