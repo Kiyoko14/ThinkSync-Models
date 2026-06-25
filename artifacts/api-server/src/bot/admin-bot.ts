@@ -353,7 +353,49 @@ bot.callbackQuery(/model_disable_(.+)/, async (ctx) => {
 });
 
 // =============================================================================
-// MODEL EDIT (conversational - uses bot.hears())
+// MODEL PRICING (conversational - uses bot.hears())
+// =============================================================================
+
+bot.callbackQuery(/model_pricing_(.+)/, async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!admin || !hasPermission(admin.role, "models.edit")) {
+    await ctx.answerCallbackQuery("❌ Access denied!");
+    return;
+  }
+  const slug = (ctx.match as RegExpMatchArray)[1];
+  await ctx.answerCallbackQuery();
+
+  modelEditSessions.set(admin.id, { slug, field: 'pricing' });
+
+  await ctx.editMessageText(
+    `💰 *Edit Pricing for ${slug}*\\n\\nPlease type the new pricing in format:\\n\`input_per_m,output_per_m\`\\n\\nExample: \`7,7\` for 7 cents/M input and output`,
+    { parse_mode: "Markdown" }
+  );
+});
+
+// =============================================================================
+// USER ADD BALANCE (conversational)
+// =============================================================================
+
+bot.callbackQuery(/user_add_balance_(.+)/, async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!admin || !hasPermission(admin.role, "users.edit")) {
+    await ctx.answerCallbackQuery("❌ Access denied!");
+    return;
+  }
+  const userId = (ctx.match as RegExpMatchArray)[1];
+  await ctx.answerCallbackQuery();
+
+  modelEditSessions.set(admin.id, { slug: userId, field: 'add_balance' });
+
+  await ctx.editMessageText(
+    `💰 *Add Balance to User*\\n\\nPlease type the amount to add (in tokens):`,
+    { parse_mode: "Markdown" }
+  );
+});
+
+// =============================================================================
+// PROMOCODES MENU
 // =============================================================================
 
 // Step 1: User clicks "Edit" → ask which field to edit
@@ -410,27 +452,60 @@ bot.hears(/^[^/]/, async (ctx) => {
   if (!admin) return;
 
   const session = modelEditSessions.get(admin.id);
-  if (!session) return;
+  if (!session) return;  // ← GUARD: only intercept if in edit session
 
   const newValue = ctx.message?.text?.trim();
   if (!newValue) return;
 
   try {
-    const { updateModel } = await import("../services/model");
-    const patch: any = {};
-    
-    // Convert value to correct type
-    if (["pricing_input_per_m", "pricing_output_per_m", "rate_limit_rpm", "rate_limit_tpm"].includes(session.field)) {
-      patch[session.field] = parseInt(newValue, 10);
+    if (session.field === 'add_balance') {
+      // Add balance to user
+      const amount = parseInt(newValue, 10);
+      if (isNaN(amount) || amount <= 0) {
+        await ctx.reply("❌ Please enter a valid positive number!");
+        return;
+      }
+      const { addBalance } = await import("../services/billing");
+      await addBalance(session.slug, amount, `Admin add by ${admin.email}`);
+      await logAdminAction(admin.id, admin.email, "balance_added", "user", session.slug, { amount });
+      delete (session as any)[admin.id];
+      await ctx.reply(`✅ Added ${amount} tokens to user!`, { parse_mode: "Markdown" });
+    } else if (session.field === 'pricing') {
+      // Update model pricing (format: "input,output")
+      const parts = newValue.split(',').map(s => s.trim());
+      if (parts.length !== 2) {
+        await ctx.reply("❌ Format: `input_per_m,output_per_m` (e.g. `7,7`)");
+        return;
+      }
+      const input = parseInt(parts[0], 10);
+      const output = parseInt(parts[1], 10);
+      if (isNaN(input) || isNaN(output)) {
+        await ctx.reply("❌ Please enter valid numbers!");
+        return;
+      }
+      const { updateModel } = await import("../services/model");
+      await updateModel(session.slug, { pricing_input_per_m: input, pricing_output_per_m: output });
+      await logAdminAction(admin.id, admin.email, "model_pricing_updated", "model", undefined, { slug: session.slug, input, output });
+      delete (session as any)[admin.id];
+      await ctx.reply(`✅ Updated pricing for *${session.slug}*: ${input}/${output} cents/M`, { parse_mode: "Markdown" });
     } else {
-      patch[session.field] = newValue;
+      // Default: update model field
+      const { updateModel } = await import("../services/model");
+      const patch: any = {};
+      
+      // Convert value to correct type
+      if (["pricing_input_per_m", "pricing_output_per_m", "rate_limit_rpm", "rate_limit_tpm"].includes(session.field)) {
+        patch[session.field] = parseInt(newValue, 10);
+      } else {
+        patch[session.field] = newValue;
+      }
+
+      await updateModel(session.slug, patch);
+      await logAdminAction(admin.id, admin.email, "model_updated", "model", undefined, { slug: session.slug, field: session.field, value: newValue });
+
+      delete (session as any)[admin.id];
+      await ctx.reply(`✅ Updated *${session.field}* for model *${session.slug}*!`, { parse_mode: "Markdown" });
     }
-
-    await updateModel(session.slug, patch);
-    await logAdminAction(admin.id, admin.email, "model_updated", "model", undefined, { slug: session.slug, field: session.field, value: newValue });
-
-    delete (session as any)[admin.id];
-    await ctx.reply(`✅ Updated *${session.field}* for model *${session.slug}*!`, { parse_mode: "Markdown" });
   } catch (error: any) {
     await ctx.reply(`❌ Error: ${error.message}`);
   }
@@ -926,6 +1001,46 @@ bot.callbackQuery("settings_list", async (ctx) => {
   }
 
   await ctx.editMessageText(message, { parse_mode: "Markdown" });
+});
+
+// =============================================================================
+// SETTINGS EDIT (conversational)
+// =============================================================================
+
+bot.callbackQuery("settings_edit", async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!admin || !hasPermission(admin.role, "settings.edit")) {
+    await ctx.answerCallbackQuery("❌ Access denied!");
+    return;
+  }
+  await ctx.answerCallbackQuery();
+
+  const { getAllSettings } = await import("../services/platform-settings");
+  const settings = await getAllSettings();
+
+  let message = "⚙️ *Edit Platform Setting*\\n\\nSelect setting to edit:\\n\\n";
+  const keyboard = new InlineKeyboard();
+
+  for (const s of settings.slice(0, 10)) {
+    keyboard.text(s.key, `settings_field_${s.key}`).row();
+  }
+  keyboard.text("⬅️ Back", "settings_list");
+
+  await ctx.editMessageText(message, { parse_mode: "Markdown", reply_markup: keyboard });
+});
+
+bot.callbackQuery(/settings_field_(.+)/, async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!admin) return;
+  await ctx.answerCallbackQuery();
+
+  const key = (ctx.match as RegExpMatchArray)[1];
+  modelEditSessions.set(admin.id, { slug: key, field: 'settings' });
+
+  await ctx.editMessageText(
+    `✏️ Editing *${key}*\\n\\nPlease type the new value (or /cancel to abort):`,
+    { parse_mode: "Markdown" }
+  );
 });
 
 // =============================================================================
