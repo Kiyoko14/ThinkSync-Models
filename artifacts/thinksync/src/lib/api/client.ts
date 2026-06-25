@@ -209,7 +209,7 @@ export class ApiClient {
   }
 
   async getPaymentRequests(token: string): Promise<PaymentRequestItem[]> {
-    return this.request<PaymentRequestItem[]>("/v1/user/payment-requests", undefined, token);
+    return this.request<PaymentRequestItem[]>("/payments/my-requests", undefined, token);
   }
 
   async createPaymentRequest(token: string, payload: { amount: number; currency: string; screenshot_url?: string }): Promise<PaymentRequestItem> {

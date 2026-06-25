@@ -518,8 +518,9 @@ router.post("/chat/completions", chatAuthMiddleware, async (req: AuthenticatedRe
 // =============================================================================
 
 // GET /v1/models
-router.get("/models", (_req, res) => {
-  const activeModels = listModels()
+router.get("/models", async (_req, res) => {
+  const allModels = await listModels();
+  const activeModels = allModels
     .filter((m) => m.is_active)
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((m) => ({
