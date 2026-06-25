@@ -17,7 +17,7 @@ interface ValidationResult {
 function validateEnvironment(): ValidationResult[] {
   const results: ValidationResult[] = [];
   
-  // Required environment variables
+  // Required environment variables (startup fails if missing)
   const required = [
     'PORT',
     'DATABASE_URL',
@@ -38,9 +38,9 @@ function validateEnvironment(): ValidationResult[] {
     }
   }
   
-  // Optional but recommended
+  // Recommended (warned if missing, but not fatal)
   const recommended = [
-    'TELEGRAM_ADMIN_BOT_TOKEN',
+    'TELEGRAM_BOT_TOKEN',
     'TELEGRAM_USER_BOT_TOKEN',
   ];
   
@@ -50,8 +50,36 @@ function validateEnvironment(): ValidationResult[] {
     } else {
       results.push({
         name: key,
+        valid: true, // not fatal
+        error: `${key} not set (bot will not start)`,
+      });
+    }
+  }
+  
+  // Validated but optional (logged for visibility)
+  const optional = [
+    'ADMIN_EMAIL',
+    'ADMIN_PASSWORD_HASH',
+    'THINKSYNC_PROVIDER',
+    'SUPABASE_URL',
+    'SUPABASE_SERVICE_KEY',
+    'CORS_ORIGINS',
+    'NODE_ENV',
+    'LOG_LEVEL',
+    'PROVIDER_TIMEOUT_MS',
+    'PROVIDER_MAX_RETRIES',
+    'PRIMARY_ADMIN_EMAIL',
+    'PRIMARY_ADMIN_TELEGRAM_ID',
+  ];
+  
+  for (const key of optional) {
+    if (process.env[key]) {
+      results.push({ name: key, valid: true });
+    } else {
+      results.push({
+        name: key,
         valid: true,
-        error: `${key} not set (optional)`,
+        error: `${key} not set (using default)`,
       });
     }
   }

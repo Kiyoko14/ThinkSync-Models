@@ -18,6 +18,7 @@ export interface User {
   updated_at: string;
   rate_limit_rpm: number;
   rate_limit_tpm: number;
+  welcome_bonus_claimed: boolean;
 }
 
 /**
@@ -35,6 +36,7 @@ export async function createUser(user: {
   balance?: number;
   rate_limit_rpm?: number;
   rate_limit_tpm?: number;
+  welcome_bonus_claimed?: boolean;
 }): Promise<User> {
   const id = user.id || randomUUID();
   const now = new Date().toISOString();
@@ -43,11 +45,13 @@ export async function createUser(user: {
     `INSERT INTO users (
       id, email, password_hash, display_name, plan_tier, role,
       is_active, total_spent, balance, rate_limit_rpm, rate_limit_tpm,
+      welcome_bonus_claimed,
       created_at, updated_at
     ) VALUES (
       $1, $2, $3, $4, $5, $6,
       $7, $8, $9, $10, $11,
-      $12, $13
+      $12,
+      $13, $14
     )
     ON CONFLICT (id) DO UPDATE SET
       email = EXCLUDED.email,
@@ -60,6 +64,7 @@ export async function createUser(user: {
       balance = EXCLUDED.balance,
       rate_limit_rpm = EXCLUDED.rate_limit_rpm,
       rate_limit_tpm = EXCLUDED.rate_limit_tpm,
+      welcome_bonus_claimed = EXCLUDED.welcome_bonus_claimed,
       updated_at = EXCLUDED.updated_at
     RETURNING *`,
     [
@@ -74,12 +79,20 @@ export async function createUser(user: {
       user.balance || 0,
       user.rate_limit_rpm || 60,
       user.rate_limit_tpm || 10000,
+      user.welcome_bonus_claimed !== undefined ? user.welcome_bonus_claimed : false,
       now,
       now,
     ]
   );
   
-  return result.rows[0] as User;
+  const newUser = result.rows[0] as User;
+  
+  // Grant welcome bonus if enabled and user hasn't claimed it
+  if (!newUser.welcome_bonus_claimed) {
+    await grantWelcomeBonus(newUser.id);
+  }
+  
+  return newUser;
 }
 
 /**
@@ -264,16 +277,72 @@ export async function seedAdminUser(): Promise<void> {
 // =============================================================================
 
 // Keep function signatures compatible with old in-memory version
-export { createUser, getUserById, getUserByEmail, updateUser, listUsers };
 
-// Default export for flexibility
-export default {
-  createUser,
-  getUserById,
-  getUserByEmail,
-  updateUser,
-  listUsers,
-  deleteUser,
-  clearUsers,
-  seedAdminUser,
-};
+// =============================================================================
+// WELCOME BONUS (Phase VPS-05)
+// =============================================================================
+
+/**
+ * Grant welcome bonus to a new user.
+ * Idempotent: safe to call multiple times; only grants once.
+ */
+export async function grantWelcomeBonus(userId: string): Promise<void> {
+  // Check if already claimed
+  const user = await getUserById(userId);
+  if (!user || user.welcome_bonus_claimed) {
+    return; // Already claimed or user not found
+  }
+
+  // Check if welcome bonus is enabled
+  const { isFeatureEnabled, getSettingValue } = await import('./platform-settings');
+  const enabled = await isFeatureEnabled('welcome_bonus_enabled');
+  if (!enabled) {
+    return;
+  }
+
+  const amount = await getSettingValue<number>('welcome_bonus_amount', 1000);
+  if (typeof amount !== 'number' || amount <= 0) {
+    return;
+  }
+
+  // Use a transaction via pool directly
+  const client = await db.getClient();
+  try {
+    await (client as any).query('BEGIN');
+
+    // Credit the user's balance
+    await (client as any).query(
+      'UPDATE users SET balance = balance + $1, welcome_bonus_claimed = true, updated_at = NOW() WHERE id = $2',
+      [amount, userId]
+    );
+
+    // Get current balance for transaction record
+    const balanceResult = await (client as any).query(
+      'SELECT balance FROM users WHERE id = $1',
+      [userId]
+    );
+    const balanceAfter = balanceResult.rows[0]?.balance || amount;
+
+    // Create transaction record
+    await (client as any).query(
+      `INSERT INTO transactions (id, profile_id, amount, balance_after, transaction_type, status, description, created_at)
+       VALUES (gen_random_uuid(), $1, $2, $3, 'welcome_bonus', 'completed', 'Welcome bonus', NOW())`,
+      [userId, amount, balanceAfter]
+    );
+
+    // Create audit log (use user as admin since system action)
+    await (client as any).query(
+      `INSERT INTO audit_logs (id, admin_id, admin_email, action, target_type, target_id, details, created_at)
+       VALUES (gen_random_uuid(), $1, 'system', 'welcome_bonus_granted', 'user', $2, $3, NOW())`,
+      [userId, userId, JSON.stringify({ amount })]
+    );
+
+    await (client as any).query('COMMIT');
+  } catch (err) {
+    await (client as any).query('ROLLBACK');
+    console.error('Welcome bonus grant failed:', err);
+    throw err;
+  } finally {
+    (client as any).release();
+  }
+}
