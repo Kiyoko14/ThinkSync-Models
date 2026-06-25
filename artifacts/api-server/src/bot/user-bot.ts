@@ -178,9 +178,15 @@ const t: Translations = {
 /support - Support`
   },
   enter_code: {
-    uz: '🔗 Hisobni ulash\\n\\nIltimos, 16 xonali ulash kodini yuboring.\\n\\nKodni hisob sozlamalaridan olishingiz mumkin.',
-    ru: '🔗 Привязка аккаунта\\n\\nПожалуйста, отправьте 16-значный код привязки.\\n\\nКод можно получить в настройках аккаунта.',
-    en: '🔗 Link Account\\n\\nPlease send the 16-digit linking code.\\n\\nYou can get the code from account settings.'
+    uz: `🔗 Hisobni ulash
+Iltimos, 16 xonali ulash kodini yuboring.
+Kodni hisob sozlamalaridan olishingiz mumkin.`,
+    ru: `🔗 Привязка аккаунта
+Пожалуйста, отправьте 16-значный код привязки.
+Код можно получить в настройках аккаунта.`,
+    en: `🔗 Link Account
+Please send the 16-digit linking code.
+You can get the code from account settings.`
   },
   invalid_code: {
     uz: '❌ Noto\'g\'ri kod formati! 16 ta belgi kerak.',
