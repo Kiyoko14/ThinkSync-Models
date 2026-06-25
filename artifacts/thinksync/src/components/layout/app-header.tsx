@@ -19,7 +19,6 @@ export function AppHeader() {
   const links = [
     { href: "/", label: t("nav.home") },
     { href: "/models", label: t("nav.models") },
-    { href: "/pricing", label: t("nav.pricing") },
     { href: "/docs", label: t("nav.docs") },
   ];
 
