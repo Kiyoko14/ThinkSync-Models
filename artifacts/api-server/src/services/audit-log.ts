@@ -209,14 +209,6 @@ export async function clearAuditLogs(): Promise<void> {
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 
-export {
-  createAuditLog,
-  getAuditLogById,
-  listAuditLogsForUser,
-  listAllAuditLogs,
-  deleteOldAuditLogs,
-  clearAuditLogs,
-};
 
 export default {
   createAuditLog,
@@ -226,3 +218,6 @@ export default {
   deleteOldAuditLogs,
   clearAuditLogs,
 };
+
+// Compatibility: listAuditLogs = listAllAuditLogs
+export const listAuditLogs = listAllAuditLogs;

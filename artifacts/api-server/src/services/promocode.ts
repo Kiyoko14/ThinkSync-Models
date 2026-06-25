@@ -245,16 +245,6 @@ export async function clearPromocodes(): Promise<void> {
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 
-export {
-  createPromocode,
-  getPromocodeById,
-  getPromocodeByCode,
-  updatePromocode,
-  incrementUsedCount,
-  listPromocodes,
-  deletePromocode,
-  clearPromocodes,
-};
 
 export default {
   createPromocode,

@@ -208,14 +208,6 @@ export async function clearPackages(): Promise<void> {
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 
-export {
-  createPackage,
-  getPackageById,
-  updatePackage,
-  listPackages,
-  deletePackage,
-  clearPackages,
-};
 
 export default {
   createPackage,

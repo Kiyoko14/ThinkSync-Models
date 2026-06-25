@@ -256,15 +256,6 @@ export async function clearModels(): Promise<void> {
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 
-export {
-  createModel,
-  getModelById,
-  getModelBySlug,
-  updateModel,
-  listModels,
-  deleteModel,
-  clearModels,
-};
 
 export default {
   createModel,
@@ -275,3 +266,6 @@ export default {
   deleteModel,
   clearModels,
 };
+
+// Compatibility: getAllModels = listModels
+export const getAllModels = listModels;

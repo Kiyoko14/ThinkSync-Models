@@ -186,18 +186,6 @@ export async function clearApiKeys(): Promise<void> {
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 
-export {
-  createApiKey,
-  getApiKeyById,
-  getApiKeyByHash,
-  listApiKeysForUser,
-  revokeApiKey,
-  rotateApiKey,
-  updateLastUsed,
-  deleteExpiredKeys,
-  deleteApiKey,
-  clearApiKeys,
-};
 
 export default {
   createApiKey,

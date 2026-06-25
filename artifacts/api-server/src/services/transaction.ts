@@ -176,15 +176,6 @@ export async function clearTransactions(): Promise<void> {
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 
-export {
-  createTransaction,
-  getTransactionById,
-  listTransactionsForUser,
-  getTotalSpentByUser,
-  getCurrentBalance,
-  deleteOldTransactions,
-  clearTransactions,
-};
 
 export default {
   createTransaction,
@@ -195,3 +186,52 @@ export default {
   deleteOldTransactions,
   clearTransactions,
 };
+
+
+// listAllTransactions - returns all transactions (admin use)
+export async function listAllTransactions(filters?: {
+  profile_id?: string;
+  transaction_type?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<Transaction[]> {
+  let query = 'SELECT * FROM transactions';
+  const values: any[] = [];
+  let idx = 1;
+  const where: string[] = [];
+  
+  if (filters?.profile_id) {
+    where.push(`profile_id = $${idx}`);
+    values.push(filters.profile_id);
+    idx++;
+  }
+  if (filters?.transaction_type) {
+    where.push(`transaction_type = $${idx}`);
+    values.push(filters.transaction_type);
+    idx++;
+  }
+  if (filters?.status) {
+    where.push(`status = $${idx}`);
+    values.push(filters.status);
+    idx++;
+  }
+  
+  if (where.length > 0) {
+    query += ' WHERE ' + where.join(' AND ');
+  }
+  
+  query += ' ORDER BY created_at DESC';
+  
+  if (filters?.limit) {
+    query += ` LIMIT $${idx}`;
+    values.push(filters.limit);
+    idx++;
+  }
+  
+  const result = await db.query(query, values);
+  return result.rows;
+}
+
+// Compatibility alias
+export const listTransactions = listAllTransactions;
