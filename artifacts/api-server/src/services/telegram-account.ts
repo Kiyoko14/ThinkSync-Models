@@ -7,6 +7,7 @@ export interface TelegramAccount {
   user_id: string;
   telegram_id: number;
   telegram_username?: string;
+  language?: string;
   linking_code?: string;
   linking_code_expires_at?: string;
   linked_at: string;
@@ -57,7 +58,8 @@ export async function createLinkingCode(userId: string): Promise<{ code: string;
 export async function linkTelegramAccount(
   linkingCode: string,
   telegramId: number,
-  telegramUsername?: string
+  telegramUsername?: string,
+  language: string = 'uz'
 ): Promise<{ success: boolean; error?: string; user?: any }> {
   try {
     // Find pending linking code
@@ -88,9 +90,9 @@ export async function linkTelegramAccount(
     await db.query(
       `UPDATE telegram_accounts 
        SET telegram_id = $1, telegram_username = $2, linking_code = NULL, 
-           linking_code_expires_at = NULL, linked_at = $3, last_seen_at = $3
-       WHERE id = $4`,
-      [telegramId, telegramUsername || null, now, account.id]
+           linking_code_expires_at = NULL, linked_at = $3, last_seen_at = $3, language = $4
+       WHERE id = $5`,
+      [telegramId, telegramUsername || null, now, language, account.id]
     );
     
     // Get user info
@@ -136,7 +138,12 @@ export async function getUserByTelegramId(telegramId: number): Promise<any | nul
     [account.user_id]
   );
   
-  return result.rows[0] || null;
+  const user = result.rows[0] || null;
+  if (user && account.language) {
+    user.language = account.language;
+  }
+  
+  return user;
 }
 
 /**
@@ -160,6 +167,17 @@ export async function unlinkTelegramAccount(telegramId: number): Promise<boolean
   return (result.rowCount || 0) > 0;
 }
 
+/**
+ * Update language for telegram account
+ */
+export async function updateLanguage(telegramId: number, language: string): Promise<boolean> {
+  const result = await db.query(
+    'UPDATE telegram_accounts SET language = $1 WHERE telegram_id = $2',
+    [language, telegramId]
+  );
+  return (result.rowCount || 0) > 0;
+}
+
 export default {
   createLinkingCode,
   linkTelegramAccount,
@@ -167,4 +185,5 @@ export default {
   getUserByTelegramId,
   updateLastSeen,
   unlinkTelegramAccount,
+  updateLanguage,
 };
