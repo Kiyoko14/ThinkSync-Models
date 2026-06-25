@@ -11,7 +11,6 @@ import { ThemeToggle } from "@/components/common/theme-toggle";
 
 const HomePage = lazy(() => import("@/pages/home"));
 const ModelsPage = lazy(() => import("@/pages/models"));
-const PricingPage = lazy(() => import("@/pages/pricing"));
 const DocsPage = lazy(() => import("@/pages/docs"));
 const LoginPage = lazy(() => import("@/pages/login"));
 const RegisterPage = lazy(() => import("@/pages/register"));
@@ -30,7 +29,6 @@ const AdminOverview = lazy(() => import("@/pages/admin/overview"));
 const AdminModels = lazy(() => import("@/pages/admin/models"));
 const AdminUsers = lazy(() => import("@/pages/admin/users"));
 const AdminTransactions = lazy(() => import("@/pages/admin/transactions"));
-const AdminPackages = lazy(() => import("@/pages/admin/packages"));
 const AdminPromocodes = lazy(() => import("@/pages/admin/promocodes"));
 const AdminLogs = lazy(() => import("@/pages/admin/logs"));
 const AdminPaymentRequests = lazy(() => import("@/pages/admin/payment-requests"));
@@ -53,7 +51,6 @@ function Router() {
       {/* Public - Home page has its own layout */}
       <Route path="/" component={HomePage} />
       <Route path="/models" component={() => <PageShell><ModelsPage /></PageShell>} />
-      <Route path="/pricing" component={() => <PageShell><PricingPage /></PageShell>} />
       <Route path="/docs" component={() => <PageShell><DocsPage /></PageShell>} />
       <Route path="/terms" component={() => <PageShell><TermsPage /></PageShell>} />
       <Route path="/privacy" component={() => <PageShell><PrivacyPage /></PageShell>} />
@@ -72,7 +69,6 @@ function Router() {
       <Route path="/admin/models" component={() => <AdminLayout><AdminModels /></AdminLayout>} />
       <Route path="/admin/users" component={() => <AdminLayout><AdminUsers /></AdminLayout>} />
       <Route path="/admin/transactions" component={() => <AdminLayout><AdminTransactions /></AdminLayout>} />
-      <Route path="/admin/packages" component={() => <AdminLayout><AdminPackages /></AdminLayout>} />
       <Route path="/admin/promocodes" component={() => <AdminLayout><AdminPromocodes /></AdminLayout>} />
       <Route path="/admin/logs" component={() => <AdminLayout><AdminLogs /></AdminLayout>} />
       <Route path="/admin/payment-requests" component={() => <AdminLayout><AdminPaymentRequests /></AdminLayout>} />

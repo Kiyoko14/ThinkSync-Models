@@ -98,10 +98,11 @@ export class ApiClient {
     return this.request<ModelItem>(`/v1/models/${id}`);
   }
 
-  async listPackages(): Promise<PackageItem[]> {
-    const data = await this.request<PackageListResponse>("/v1/packages");
-    return data.data;
-  }
+  // Packages endpoints removed — ThinkSync is usage-based
+  // async listPackges(): Promise<PackageItem[]> {
+  //   const data = await this.request<PackageListResponse>("/v1/packages");
+  //   return data.data;
+  // }
 
   async getProfile(token: string): Promise<Profile> {
     return this.request<Profile>("/v1/user/profile", undefined, token);
@@ -173,18 +174,10 @@ export class ApiClient {
     return this.request<Paginated<AdminTransaction>>(`/v1/admin/transactions${query}`, undefined, token);
   }
 
-  async listAdminPackages(token: string, params: { page: number; pageSize: number; search?: string; status?: string }): Promise<Paginated<AdminPackage>> {
-    const query = buildQuery({ page: params.page, page_size: params.pageSize, search: params.search, status: params.status === "all" ? undefined : params.status });
-    return this.request<Paginated<AdminPackage>>(`/v1/admin/packages${query}`, undefined, token);
-  }
-
-  async createAdminPackage(token: string, payload: Omit<AdminPackage, "id" | "created_at" | "updated_at">): Promise<AdminPackage> {
-    return this.request<AdminPackage>("/v1/admin/packages", { method: "POST", body: JSON.stringify(payload) }, token);
-  }
-
-  async updateAdminPackage(token: string, id: string, payload: Partial<AdminPackage>): Promise<AdminPackage> {
-    return this.request<AdminPackage>(`/v1/admin/packages/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, token);
-  }
+  // Packages endpoints removed — ThinkSync is usage-based
+  // async listAdminPackages(...)
+  // async createAdminPackage(...)
+  // async updateAdminPackage(...)
 
   async listAdminPromocodes(token: string, params: { page: number; pageSize: number; search?: string; isActive?: string }): Promise<Paginated<AdminPromocode>> {
     const query = buildQuery({ page: params.page, page_size: params.pageSize, search: params.search, is_active: params.isActive === "all" ? undefined : params.isActive });
