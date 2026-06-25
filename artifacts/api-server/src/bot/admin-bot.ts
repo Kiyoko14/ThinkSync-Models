@@ -353,6 +353,90 @@ bot.callbackQuery(/model_disable_(.+)/, async (ctx) => {
 });
 
 // =============================================================================
+// MODEL EDIT (conversational - uses bot.hears())
+// =============================================================================
+
+// Step 1: User clicks "Edit" → ask which field to edit
+bot.callbackQuery(/model_edit_(.+)/, async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!admin || !hasPermission(admin.role, "models.edit")) {
+    await ctx.answerCallbackQuery("❌ Access denied!");
+    return;
+  }
+  const slug = (ctx.match as RegExpMatchArray)[1];
+  await ctx.answerCallbackQuery();
+
+  const keyboard = new InlineKeyboard()
+    .text("📝 Display Name", `model_field_${slug}_display_name`).row()
+    .text("📝 Description", `model_field_${slug}_description`).row()
+    .text("💰 Pricing Input", `model_field_${slug}_pricing_input_per_m`).row()
+    .text("💰 Pricing Output", `model_field_${slug}_pricing_output_per_m`).row()
+    .text("⚡ RPM", `model_field_${slug}_rate_limit_rpm`).row()
+    .text("⚡ TPM", `model_field_${slug}_rate_limit_tpm`).row()
+    .text("🎖 Tier Access", `model_field_${slug}_tier_access`).row()
+    .text("🖼 Logo URL", `model_field_${slug}_logo_url`).row()
+    .text("⬅️ Back", `model_detail_${slug}`);
+
+  await ctx.editMessageText(
+    `✏️ *Edit Model: ${slug}*\\n\\nSelect field to edit:`,
+    { parse_mode: "Markdown", reply_markup: keyboard }
+  );
+});
+
+// Step 2: User clicks a field → ask for new value (stores in session)
+const modelEditSessions = new Map<number, { slug: string; field: string }>();
+
+bot.callbackQuery(/model_field_(.+)_(.+)/, async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!admin) return;
+  await ctx.answerCallbackQuery();
+
+  const match = (ctx.match as RegExpMatchArray)[1];
+  const parts = match.split("_");
+  const slug = parts[0];
+  const field = parts.slice(1).join("_");
+
+  modelEditSessions.set(admin.id, { slug, field });
+
+  await ctx.editMessageText(
+    `✏️ Editing *${field}* for model *${slug}*\\n\\nPlease type the new value (or /cancel to abort):`,
+    { parse_mode: "Markdown" }
+  );
+});
+
+// Step 3: User types new value → update DB
+bot.hears(/^[^/]/, async (ctx) => {
+  const admin = await requireAdmin(ctx);
+  if (!admin) return;
+
+  const session = modelEditSessions.get(admin.id);
+  if (!session) return;
+
+  const newValue = ctx.message?.text?.trim();
+  if (!newValue) return;
+
+  try {
+    const { updateModel } = await import("../services/model");
+    const patch: any = {};
+    
+    // Convert value to correct type
+    if (["pricing_input_per_m", "pricing_output_per_m", "rate_limit_rpm", "rate_limit_tpm"].includes(session.field)) {
+      patch[session.field] = parseInt(newValue, 10);
+    } else {
+      patch[session.field] = newValue;
+    }
+
+    await updateModel(session.slug, patch);
+    await logAdminAction(admin.id, admin.email, "model_updated", "model", undefined, { slug: session.slug, field: session.field, value: newValue });
+
+    delete (session as any)[admin.id];
+    await ctx.reply(`✅ Updated *${session.field}* for model *${session.slug}*!`, { parse_mode: "Markdown" });
+  } catch (error: any) {
+    await ctx.reply(`❌ Error: ${error.message}`);
+  }
+});
+
+// =============================================================================
 // PROMOCODES MENU
 // =============================================================================
 
