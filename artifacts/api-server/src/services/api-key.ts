@@ -183,6 +183,38 @@ export async function clearApiKeys(): Promise<void> {
 }
 
 // =============================================================================
+// UTILITY: Generate API key string + hash
+// =============================================================================
+
+/**
+ * Generate a new API key string and its hash.
+ * Returns { rawKey, keyPrefix, keyHash }
+ */
+export function generateApiKeyParts(): { rawKey: string; keyPrefix: string; keyHash: string } {
+  const rawKey = randomUUID().replace(/-/g, '') + randomUUID().replace(/-/g, '');
+  const keyPrefix = `ts_${rawKey.slice(0, 8)}`;
+  const keyHash = require('crypto').createHash('sha256').update(rawKey).digest('hex');
+  return { rawKey, keyPrefix, keyHash };
+}
+
+/**
+ * Create a new API key — generates key/hash automatically.
+ * Returns { apiKey, rawKey } where rawKey is only shown once.
+ */
+export async function generateAndCreateApiKey(profileId: string, name?: string): Promise<{ apiKey: ApiKey; rawKey: string }> {
+  const { rawKey, keyPrefix, keyHash } = generateApiKeyParts();
+  
+  const apiKey = await createApiKey({
+    profile_id: profileId,
+    key_prefix: keyPrefix,
+    key_hash: keyHash,
+    name: name || 'API Key',
+  });
+  
+  return { apiKey, rawKey };
+}
+
+// =============================================================================
 // COMPATIBILITY EXPORTS (for existing code)
 // =============================================================================
 

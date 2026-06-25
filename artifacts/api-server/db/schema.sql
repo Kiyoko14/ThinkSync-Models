@@ -228,6 +228,7 @@ CREATE TABLE IF NOT EXISTS telegram_accounts (
     user_id UUID REFERENCES users(id) ON DELETE CASCADE,
     telegram_id BIGINT UNIQUE NOT NULL,
     telegram_username VARCHAR(255),
+    language VARCHAR(10) DEFAULT 'uz',
     linking_code VARCHAR(32) UNIQUE,
     linking_code_expires_at TIMESTAMP,
     linked_at TIMESTAMP DEFAULT NOW(),
@@ -364,6 +365,7 @@ ON CONFLICT (slug) DO NOTHING;
 -- =============================================================================
 -- SCHEMA VERSION TRACKING
 -- =============================================================================
+
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version VARCHAR(50) PRIMARY KEY,
     applied_at TIMESTAMP DEFAULT NOW()
@@ -375,6 +377,7 @@ ON CONFLICT (version) DO NOTHING;
 -- =============================================================================
 -- ENABLE ROW LEVEL SECURITY (Supabase)
 -- =============================================================================
+
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE api_keys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE models ENABLE ROW LEVEL SECURITY;
@@ -388,10 +391,7 @@ ALTER TABLE promocodes ENABLE ROW LEVEL SECURITY;
 -- RLS policies (safe for custom JWT and Supabase Auth)
 -- NOTE: Backend uses direct pg pool (DATABASE_URL) — RLS is bypassed (service role).
 -- These policies apply only when using Supabase REST API directly.
--- For custom JWT: set jwt.claim.sub via supabase settings, or disable RLS for direct connections.
--- Simplified policy: allow all for service role; users filtered by application logic.
 CREATE POLICY "Service role full access" ON users FOR ALL USING (true);
--- Allow users to read own data (works with Supabase Auth and custom JWT via claims)
 CREATE POLICY "Users can read own data" ON users FOR SELECT USING (
   (current_setting('request.jwt.claim.sub', true))::text = id::text
   OR (current_setting('request.jwt.claims', true))::jsonb ->> 'role' = 'service_role'
@@ -401,4 +401,8 @@ CREATE POLICY "Users can read own data" ON users FOR SELECT USING (
 -- =============================================================================
 -- COMPLETE
 -- =============================================================================
+
+-- Migrations for existing deployments (safe to re-run)
+ALTER TABLE telegram_accounts ADD COLUMN IF NOT EXISTS language VARCHAR(10) DEFAULT 'uz';
+
 SELECT 'ThinkSync Models schema v1 - DEPLOYED' as status;

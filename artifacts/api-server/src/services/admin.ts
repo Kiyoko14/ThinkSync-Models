@@ -344,6 +344,46 @@ export async function seedPrimaryAdmin(): Promise<void> {
   console.log(`[ADMIN] Created primary admin: ${primaryEmail || primaryTelegramId}`);
 }
 
+// =============================================================================
+// TELEGRAM HELPERS (used by admin-bot.ts)
+// =============================================================================
+
+/**
+ * Check if a Telegram user (from ctx.from) is an authorized admin.
+ * Returns the Admin record or null.
+ */
+export async function requireAdmin(ctx: any): Promise<any | null> {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) {
+    await ctx.reply('❌ Unauthorized: no Telegram ID');
+    return null;
+  }
+  const admin = await getAdminByTelegramId(telegramId);
+  if (!admin) {
+    await ctx.reply('❌ Unauthorized: you are not an admin');
+    return null;
+  }
+  if (!admin.is_active) {
+    await ctx.reply('❌ Your admin account is disabled');
+    return null;
+  }
+  return admin;
+}
+
+/**
+ * Check if a Telegram user is the owner.
+ * Returns the Admin record or null.
+ */
+export async function requireOwner(ctx: any): Promise<any | null> {
+  const admin = await requireAdmin(ctx);
+  if (!admin) return null;
+  if (admin.role !== 'owner') {
+    await ctx.reply('❌ This command is only for the owner');
+    return null;
+  }
+  return admin;
+}
+
 export default {
   createAdmin,
   getAdminByTelegramId,
@@ -358,4 +398,6 @@ export default {
   hasPermission,
   logAdminAction,
   seedPrimaryAdmin,
+  requireAdmin,
+  requireOwner,
 };
