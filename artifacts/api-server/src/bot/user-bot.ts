@@ -146,9 +146,36 @@ const t: Translations = {
     en: '📚 ThinkSync User Bot Help'
   },
   commands: {
-    uz: 'Buyruqlar:\\n/start - Bosh sahifa\\n/account - Hisob ma\'lumotlari\\n/balance - Balans ma\'lumotlari\\n/apikeys - API kalitlar\\n/deposit - To\'lov qilish\\n/usage - Foydalanish statistikasi\\n/docs - Hujjatlar\\n/website - Saytga o\'tish\\n/support - Qo\'llab-quvvatlash',
-    ru: 'Команды:\\n/start - Главная страница\\n/account - Информация об аккаунте\\n/balance - Информация о балансе\\n/apikeys - API ключи\\n/deposit - Пополнить баланс\\n/usage - Статистика использования\\n/docs - Документация\\n/website - Перейти на сайт\\n/support - Поддержка',
-    en: 'Commands:\\n/start - Home page\\n/account - Account information\\n/balance - Balance information\\n/apikeys - API keys\\n/deposit - Make a deposit\\n/usage - Usage statistics\\n/docs - Documentation\\n/website - Open website\\n/support - Support'
+    uz: `Buyruqlar:
+/start - Bosh sahifa
+/account - Hisob ma'lumotlari
+/balance - Balans ma'lumotlari
+/apikeys - API kalitlar
+/deposit - To'lov qilish
+/usage - Foydalanish statistikasi
+/docs - Hujjatlar
+/website - Saytga o'tish
+/support - Qo'llab-quvvatlash`,
+    ru: `Команды:
+/start - Главная страница
+/account - Информация об аккаунте
+/balance - Информация о балансе
+/apikeys - API ключи
+/deposit - Пополнить баланс
+/usage - Статистика использования
+/docs - Документация
+/website - Перейти на сайт
+/support - Поддержка`,
+    en: `Commands:
+/start - Home page
+/account - Account information
+/balance - Balance information
+/apikeys - API keys
+/deposit - Make a deposit
+/usage - Usage statistics
+/docs - Documentation
+/website - Open website
+/support - Support`
   },
   enter_code: {
     uz: '🔗 Hisobni ulash\\n\\nIltimos, 16 xonali ulash kodini yuboring.\\n\\nKodni hisob sozlamalaridan olishingiz mumkin.',
