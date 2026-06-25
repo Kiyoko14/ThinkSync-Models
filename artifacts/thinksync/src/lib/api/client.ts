@@ -12,16 +12,16 @@ function getApiBaseUrl(): string {
 
   // Local development
   if (hostname === "localhost" || hostname === "127.0.0.1") {
-    return "http://localhost:8080/api";
+    return "http://localhost:3000/api";
   }
 
   // Replit environment (domain contains .replit)
   if (hostname.includes(".replit")) {
-    return `${window.location.protocol}//${hostname}:8080/api`;
+    return `${window.location.protocol}//${hostname}:3000/api`;
   }
 
   // Production
-  return API_BASE_URL;
+  return API_BASE_URL + "/api";
 }
 
 export class ApiClientError extends Error {

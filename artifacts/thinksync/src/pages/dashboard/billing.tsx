@@ -219,11 +219,6 @@ export default function DashboardBillingPage() {
           )}
         </CardContent>
       </Card>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
       <Card>
         <CardHeader><CardTitle>Transactions</CardTitle></CardHeader>
