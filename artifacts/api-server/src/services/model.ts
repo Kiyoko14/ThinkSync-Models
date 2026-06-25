@@ -8,14 +8,18 @@ export interface Model {
   id: string;
   slug: string;
   provider_model_id: string;
-  provider_name: string;
+  provider: string;  // DB column name (not provider_name)
   display_name: string;
   description?: string;
+  logo_url?: string;
   pricing_input_per_m: number;
   pricing_output_per_m: number;
   supports_streaming: boolean;
   supports_functions: boolean;
   is_active: boolean;
+  is_visible: boolean;
+  tier_access: string;
+  minimum_tier_id?: string;
   context_window: number;
   max_output_tokens: number;
   rate_limit_rpm: number;
@@ -29,17 +33,21 @@ export interface Model {
  * Create a new model in the database
  */
 export async function createModel(model: {
-  id: string;
+  id?: string;
   slug: string;
   provider_model_id: string;
-  provider_name: string;
+  provider?: string;
   display_name: string;
   description?: string;
+  logo_url?: string;
   pricing_input_per_m?: number;
   pricing_output_per_m?: number;
   supports_streaming?: boolean;
   supports_functions?: boolean;
   is_active?: boolean;
+  is_visible?: boolean;
+  tier_access?: string;
+  minimum_tier_id?: string;
   context_window?: number;
   max_output_tokens?: number;
   rate_limit_rpm?: number;
@@ -50,29 +58,35 @@ export async function createModel(model: {
   
   const result = await db.query(
     `INSERT INTO models (
-      id, slug, provider_model_id, provider_name, display_name,
-      description, pricing_input_per_m, pricing_output_per_m,
-      supports_streaming, supports_functions, is_active,
+      id, slug, provider_model_id, provider, display_name,
+      description, logo_url, pricing_input_per_m, pricing_output_per_m,
+      supports_streaming, supports_functions, is_active, is_visible,
+      tier_access, minimum_tier_id,
       context_window, max_output_tokens, rate_limit_rpm, rate_limit_tpm,
       sort_order, created_at, updated_at
     ) VALUES (
       $1, $2, $3, $4, $5,
       $6, $7, $8,
       $9, $10, $11,
-      $12, $13, $14, $15,
-      $16, $17, $18
+      $12, $13, $14,
+      $15, $16, $17, $18,
+      $19, $20, $21
     )
     ON CONFLICT (id) DO UPDATE SET
       slug = EXCLUDED.slug,
       provider_model_id = EXCLUDED.provider_model_id,
-      provider_name = EXCLUDED.provider_name,
+      provider = EXCLUDED.provider,
       display_name = EXCLUDED.display_name,
       description = EXCLUDED.description,
+      logo_url = EXCLUDED.logo_url,
       pricing_input_per_m = EXCLUDED.pricing_input_per_m,
       pricing_output_per_m = EXCLUDED.pricing_output_per_m,
       supports_streaming = EXCLUDED.supports_streaming,
       supports_functions = EXCLUDED.supports_functions,
       is_active = EXCLUDED.is_active,
+      is_visible = EXCLUDED.is_visible,
+      tier_access = EXCLUDED.tier_access,
+      minimum_tier_id = EXCLUDED.minimum_tier_id,
       context_window = EXCLUDED.context_window,
       max_output_tokens = EXCLUDED.max_output_tokens,
       rate_limit_rpm = EXCLUDED.rate_limit_rpm,
@@ -81,17 +95,21 @@ export async function createModel(model: {
       updated_at = EXCLUDED.updated_at
     RETURNING *`,
     [
-      model.id,
+      model.id || randomUUID(),
       model.slug,
       model.provider_model_id,
-      model.provider_name,
+      model.provider || 'siliconflow',
       model.display_name,
       model.description || null,
+      model.logo_url || null,
       model.pricing_input_per_m || 0,
       model.pricing_output_per_m || 0,
       model.supports_streaming || false,
       model.supports_functions || false,
       model.is_active !== undefined ? model.is_active : true,
+      model.is_visible !== undefined ? model.is_visible : true,
+      model.tier_access || 'free',
+      model.minimum_tier_id || null,
       model.context_window || 4096,
       model.max_output_tokens || 4096,
       model.rate_limit_rpm || 1000,
@@ -138,11 +156,14 @@ export async function updateModel(id: string, patch: Partial<Model>): Promise<Mo
   
   // Allowed fields for update
   const allowedFields = [
-    'slug', 'provider_model_id', 'provider_name', 'display_name',
-    'description', 'pricing_input_per_m', 'pricing_output_per_m',
-    'supports_streaming', 'supports_functions', 'is_active',
-    'context_window', 'max_output_tokens', 'rate_limit_rpm',
-    'rate_limit_tpm', 'sort_order'
+    'slug', 'provider_model_id', 'provider', 'display_name',
+    'description', 'logo_url',
+    'pricing_input_per_m', 'pricing_output_per_m',
+    'supports_streaming', 'supports_functions', 
+    'is_active', 'is_visible',
+    'tier_access', 'minimum_tier_id',
+    'context_window', 'max_output_tokens', 
+    'rate_limit_rpm', 'rate_limit_tpm', 'sort_order'
   ];
   
   for (const [key, value] of Object.entries(patch)) {
