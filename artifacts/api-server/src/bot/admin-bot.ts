@@ -951,15 +951,13 @@ bot.command("broadcast", async (ctx) => {
 // START BOT
 // =============================================================================
 
-if (require.main === module) {
-  const port = parseInt(process.env.ADMIN_BOT_PORT || "8080");
-  bot.start({
-    onStart: () => {
-      console.log(`[ADMIN-BOT] Bot started in ${process.env.NODE_ENV || "development"} mode`);
-      console.log(`[ADMIN-BOT] Webhook mode: ${process.env.ADMIN_BOT_WEBHOOK === "true" ? "enabled" : "disabled"}`);
-    },
-    drop_pending_updates: true,
-  });
-}
+const port = parseInt(process.env.ADMIN_BOT_PORT || "8080");
+bot.start({
+  onStart: () => {
+    console.log(`[ADMIN-BOT] Bot started in ${process.env.NODE_ENV || "development"} mode`);
+    console.log(`[ADMIN-BOT] Webhook mode: ${process.env.ADMIN_BOT_WEBHOOK === "true" ? "enabled" : "disabled"}`);
+  },
+  drop_pending_updates: true,
+});
 
 export default bot;

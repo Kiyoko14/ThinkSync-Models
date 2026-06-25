@@ -3,7 +3,8 @@
 // Provides account access, balance, API keys, payment workflow for users
 // Phase 9: Multilingual support, proper website button, fixed onboarding
 
-import { Bot, Context, Keyboard, InlineKeyboard } from 'grammy';
+import "dotenv/config";
+import { Bot, Context, Keyboard, InlineKeyboard } from "grammy";
 import {
   getUserByTelegramId,
   createLinkingCode,
@@ -961,17 +962,11 @@ bot.catch((err) => {
 // =============================================================================
 // START BOT
 // =============================================================================
+bot.start({
+  onStart: () => {
+    console.log(`[USER-BOT] Bot started in ${process.env.NODE_ENV || "development"} mode`);
+  },
+  drop_pending_updates: true,
+});
 
-export async function startUserBot(): Promise<void> {
-  console.log('[USER_BOT] Starting ThinkSync User Bot...');
-  await bot.init();
-  console.log(`[USER_BOT] Bot started as @${bot.botInfo?.username}`);
-  bot.start();
-}
-
-export default { startUserBot };
-
-// Auto start when executed directly
-if (require.main === module) {
-  startUserBot();
-}
+export default bot;
