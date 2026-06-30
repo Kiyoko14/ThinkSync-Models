@@ -208,7 +208,7 @@ export async function updateModel(id: string, patch: Partial<Model>): Promise<Mo
  */
 export async function listModels(filters?: {
   is_active?: boolean;
-  provider_name?: string;
+  provider?: string;
   search?: string;
   limit?: number;
   offset?: number;
@@ -223,9 +223,9 @@ export async function listModels(filters?: {
     idx++;
   }
   
-  if (filters?.provider_name) {
-    query += ` AND provider_name = $${idx}`;
-    values.push(filters.provider_name);
+  if (filters?.provider) {
+    query += ` AND provider = $${idx}`;
+    values.push(filters.provider);
     idx++;
   }
   

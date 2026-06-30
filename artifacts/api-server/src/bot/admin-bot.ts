@@ -332,9 +332,14 @@ bot.callbackQuery(/model_enable_(.+)/, async (ctx) => {
   const slug = (ctx.match as RegExpMatchArray)[1];
   await ctx.answerCallbackQuery();
 
-  const { updateModel } = await import("../services/model");
-  await updateModel(slug, { is_active: true });
-  await logAdminAction(admin.id, admin.email, "model_enabled", "model", undefined, { slug });
+  const { getModelBySlug, updateModel } = await import("../services/model");
+  const model = await getModelBySlug(slug);
+  if (!model) {
+    await ctx.editMessageText(`❌ Model not found: \`${slug}\``);
+    return;
+  }
+  await updateModel(model.id, { is_active: true });
+  await logAdminAction({ adminId: admin.id, adminEmail: admin.email, action: "model_enabled", targetType: "model", details: JSON.stringify({ slug }) });
   await ctx.editMessageText(`✅ Model *${slug}* enabled!`, { parse_mode: "Markdown" });
   // Refresh detail view
   setTimeout(() => bot.handleUpdate({ callback_query: { data: `model_detail_${slug}`, from: ctx.from, message: ctx.callbackQuery.message } }), 500);
@@ -346,9 +351,14 @@ bot.callbackQuery(/model_disable_(.+)/, async (ctx) => {
   const slug = (ctx.match as RegExpMatchArray)[1];
   await ctx.answerCallbackQuery();
 
-  const { updateModel } = await import("../services/model");
-  await updateModel(slug, { is_active: false });
-  await logAdminAction(admin.id, admin.email, "model_disabled", "model", undefined, { slug });
+  const { getModelBySlug, updateModel } = await import("../services/model");
+  const model = await getModelBySlug(slug);
+  if (!model) {
+    await ctx.editMessageText(`❌ Model not found: \`${slug}\``);
+    return;
+  }
+  await updateModel(model.id, { is_active: false });
+  await logAdminAction({ adminId: admin.id, adminEmail: admin.email, action: "model_disabled", targetType: "model", details: JSON.stringify({ slug }) });
   await ctx.editMessageText(`✅ Model *${slug}* disabled!`, { parse_mode: "Markdown" });
 });
 
@@ -461,14 +471,14 @@ bot.hears(/^[^/]/, async (ctx) => {
     if (session.field === 'add_balance') {
       // Add balance to user
       const amount = parseInt(newValue, 10);
-      if (isNaN(amount) || amount <= 0) {
+      if (Number.isNaN(amount) || amount <= 0) {
         await ctx.reply("❌ Please enter a valid positive number!");
         return;
       }
       const { addBalance } = await import("../services/billing");
       await addBalance(session.slug, amount, `Admin add by ${admin.email}`);
-      await logAdminAction(admin.id, admin.email, "balance_added", "user", session.slug, { amount });
-      delete (session as any)[admin.id];
+      await logAdminAction({ adminId: admin.id, adminEmail: admin.email, action: "balance_added", targetType: "user", targetId: session.slug, details: JSON.stringify({ amount }) });
+      modelEditSessions.delete(admin.id);
       await ctx.reply(`✅ Added ${amount} tokens to user!`, { parse_mode: "Markdown" });
     } else if (session.field === 'pricing') {
       // Update model pricing (format: "input,output")
@@ -479,20 +489,30 @@ bot.hears(/^[^/]/, async (ctx) => {
       }
       const input = parseInt(parts[0], 10);
       const output = parseInt(parts[1], 10);
-      if (isNaN(input) || isNaN(output)) {
+      if (Number.isNaN(input) || Number.isNaN(output)) {
         await ctx.reply("❌ Please enter valid numbers!");
         return;
       }
-      const { updateModel } = await import("../services/model");
-      await updateModel(session.slug, { pricing_input_per_m: input, pricing_output_per_m: output });
-      await logAdminAction(admin.id, admin.email, "model_pricing_updated", "model", undefined, { slug: session.slug, input, output });
-      delete (session as any)[admin.id];
+      const { getModelBySlug, updateModel } = await import("../services/model");
+      const model = await getModelBySlug(session.slug);
+      if (!model) {
+        await ctx.reply(`❌ Model not found: \`${session.slug}\``);
+        return;
+      }
+      await updateModel(model.id, { pricing_input_per_m: input, pricing_output_per_m: output });
+      await logAdminAction({ adminId: admin.id, adminEmail: admin.email, action: "model_pricing_updated", targetType: "model", details: JSON.stringify({ slug: session.slug, input, output }) });
+      modelEditSessions.delete(admin.id);
       await ctx.reply(`✅ Updated pricing for *${session.slug}*: ${input}/${output} cents/M`, { parse_mode: "Markdown" });
     } else {
       // Default: update model field
-      const { updateModel } = await import("../services/model");
+      const { getModelBySlug, updateModel } = await import("../services/model");
+      const model = await getModelBySlug(session.slug);
+      if (!model) {
+        await ctx.reply(`❌ Model not found: \`${session.slug}\``);
+        return;
+      }
       const patch: any = {};
-      
+
       // Convert value to correct type
       if (["pricing_input_per_m", "pricing_output_per_m", "rate_limit_rpm", "rate_limit_tpm"].includes(session.field)) {
         patch[session.field] = parseInt(newValue, 10);
@@ -500,10 +520,10 @@ bot.hears(/^[^/]/, async (ctx) => {
         patch[session.field] = newValue;
       }
 
-      await updateModel(session.slug, patch);
-      await logAdminAction(admin.id, admin.email, "model_updated", "model", undefined, { slug: session.slug, field: session.field, value: newValue });
+      await updateModel(model.id, patch);
+      await logAdminAction({ adminId: admin.id, adminEmail: admin.email, action: "model_updated", targetType: "model", details: JSON.stringify({ slug: session.slug, field: session.field, value: newValue }) });
 
-      delete (session as any)[admin.id];
+      modelEditSessions.delete(admin.id);
       await ctx.reply(`✅ Updated *${session.field}* for model *${session.slug}*!`, { parse_mode: "Markdown" });
     }
   } catch (error: any) {

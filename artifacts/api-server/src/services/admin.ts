@@ -23,37 +23,32 @@ export interface Admin {
 
 const ROLE_PERMISSIONS: Record<AdminRole, string[]> = {
   owner: [
-    'payments.approve', 'payments.reject', 'payments.list',
-    'users.view', 'users.edit', 'users.delete', 'users.list',
-    'balance.add', 'balance.remove',
-    'models.view', 'models.edit', 'models.enable', 'models.disable',
-    'admins.add', 'admins.remove', 'admins.edit', 'admins.list',
-    'stats.view',
-    'settings.view', 'settings.edit'
+     'payments.approve', 'payments.reject', 'payments.view',
+     'users.view', 'users.edit', 'users.ban',
+     'models.view', 'models.edit',
+     'promocodes.view', 'promocodes.create', 'promocodes.edit', 'promocodes.delete',
+     'tiers.view',
+     'stats.view',
+     'settings.view', 'settings.edit',
+     'broadcast'
   ],
   admin: [
-    'payments.approve', 'payments.reject', 'payments.list',
-    'users.view', 'users.edit', 'users.list',
-    'balance.add', 'balance.remove',
-    'models.view', 'models.edit', 'models.enable', 'models.disable',
-    'stats.view',
-    'settings.view', 'settings.edit',
-    'tiers.view', 'tiers.edit',
-    'packages.view',
-    'promocodes.view',
-    'transactions.view',
-    'broadcast'
+     'payments.approve', 'payments.reject', 'payments.view',
+     'users.view', 'users.edit', 'users.ban',
+     'models.view', 'models.edit',
+     'promocodes.view', 'promocodes.create', 'promocodes.edit', 'promocodes.delete',
+     'tiers.view',
+     'stats.view',
+     'settings.view', 'settings.edit',
+     'broadcast'
   ],
   moderator: [
-    'payments.list',
-    'users.view',
-    'models.view',
-    'stats.view',
-    'settings.view',
-    'tiers.view',
-    'packages.view',
-    'promocodes.view',
-    'transactions.view'
+     'payments.view',
+     'users.view',
+     'models.view',
+     'tiers.view',
+     'stats.view',
+     'settings.view'
   ]
 };
 
